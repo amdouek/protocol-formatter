@@ -1,0 +1,299 @@
+# style_guide.yaml
+# ProtocolFormatter: Centralised style and configuration reference
+#
+# This file is the single source of truth for all values that transfer
+# between the Python pipeline and the Node.js renderer.
+#
+# Consumed by:
+#   extractor/prompts.py      — callout keywords, section conventions
+#   extractor/llm_extractor.py — ollama settings
+#   renderer/node_renderer.py  — node_executable, renderer paths
+#   main.py                    — output directory, logging level
+#
+# Editing guide
+# -------------
+# Colour values are CSS-style hex strings (e.g. "#1F3864").
+# Font sizes are in half-points as used by the docx npm package
+# (e.g. 21 = 10.5pt, 24 = 12pt, 28 = 14pt, 36 = 18pt).
+# All paths should support both forward-slash and backslash on Windows. -- DEVNOTE001: NEED TO SMOKE TEST THIS
+
+
+# ===========================================================================
+# Runtime paths
+# ===========================================================================
+
+paths:
+  # Path to the Node.js executable. Use "node" if Node is on the system PATH,
+  # or supply an absolute path for isolated environments.
+  # Windows example: "C:/Program Files/nodejs/node.exe"
+  node_executable: "node"
+
+  # Path to render.js, relative to the protocol_formatter package root.
+  # Change only if you relocate the renderer directory.
+  render_script: "renderer/templates/render.js"
+
+  # Path to the pandoc executable. Used by doc_reader.py to convert legacy .doc files.
+  # Use "pandoc" if pandoc is on the system PATH.
+  pandoc_executable: "pandoc"
+
+  # Default output directory for generated .docx files.
+  # Relative paths are resolved from the working directory at runtime.
+  # Use an absolute path for predictable behaviour across invocations.
+  output_dir: "output"
+
+
+# ===========================================================================
+# Ollama / LLM settings
+# ===========================================================================
+
+ollama:
+  # Base URL of the locally running Ollama server (default port 11434 as per https://docs.ollama.com/faq#how-can-i-expose-ollama-on-my-network).
+  base_url: "http://localhost:11434"
+
+  # Model identifier. Must match the name used in `ollama pull`.
+  model: "qwen2.5:14b"
+
+  # Maximum tokens to request in the completion response.
+  # Qwen2.5:14b supports up to 32768 context tokens total (prompt + completion).
+  # DEVNOTE002: Single-pass extraction; revisit if long protocols exceed context.
+  max_tokens: 4096
+
+  # Number of retry attempts if the LLM response fails Pydantic validation.
+  max_retries: 3
+
+  # Timeout in seconds for a single Ollama HTTP request.
+  request_timeout_seconds: 300
+
+
+# ===========================================================================
+# Callout classification keywords
+# ===========================================================================
+#
+# Used by extractor/prompts.py to instruct the LLM, and by
+# extractor/rule_extractor.py as heuristic triggers.
+#
+# Classification priority (high to low):
+#   critical > caution > tip > note
+#
+# A phrase matching multiple categories is assigned the highest-priority match.
+
+callouts:
+  critical:
+    label: "CRITICAL"
+    symbol: "⚠"
+    keywords:
+      - "CRITICAL"
+      - "critical step"
+      - "do not" # This might be too generic and could trigger false positives. Will need to calibrate against test protocols to observe behaviour in situ
+      - "protocol will fail"
+      - "must not" # As above - stronger term than "do not" but still potential for false positives. Need to stress test
+    description: >
+      Genuine failure points, i.e., steps where non-adherence causes the protocol
+      to break down. Use sparingly. Rendered in red.
+
+  caution:
+    label: "Caution"
+    symbol: "⚠"
+    keywords:
+      - "IMPORTANT"
+      - "WARNING"
+      - "CAUTION"
+      - "hazard"
+      - "toxic"
+      - "corrosive"
+      - "flammable"
+      - "carcinogen"
+      - "biohazard"
+      - "radiation"
+      - "RNase"
+      - "DNase"
+      - "keep on ice"
+      - "avoid freeze"
+      - "handle gently"
+      - "avoid freeze/thaw"
+      - "sensitive to"
+    description: >
+      Safety or quality risks that do not necessarily break the protocol but
+      require the operator's attention. Rendered in amber.
+
+  tip:
+    label: "Tip"
+    symbol: "💡"
+    keywords:
+      - "tip"
+      - "optional"
+      - "shortcut"
+      - "alternatively"
+      - "can also"
+      - "to improve"
+      - "for best results"
+      - "we recommend"
+      - "works well"
+    description: >
+      Optional optimisations, shortcuts, or alternative approaches that improve
+      results but are not required. Rendered in green.
+
+  note:
+    label: "Note"
+    symbol: "ℹ"
+    keywords:
+      - "note"
+      - "see section"
+      - "refer to"
+      - "for more information"
+      - "background"
+      - "version"
+      - "alternative"
+      - "species-specific"
+      - "see also"
+      - "cross-reference"
+    description: >
+      Contextual information, background, cross-references, version notes, or
+      species-specific caveats. Rendered in blue.
+
+
+# ===========================================================================
+# Stopping point detection
+# ===========================================================================
+
+stopping_points:
+  keywords:
+    - "pause point"
+    - "safe stopping point"
+    - "can be stored"
+    - "may be stored"
+    - "samples can be stored"
+    - "can be left"
+    - "store at this stage"
+    - "can stop here"
+    - "overnight"
+  symbol: "⏸"
+  description: >
+    Phrases that indicate a safe pause in the procedure. Rendered inline
+    within the step list with the ⏸ symbol rather than as a regular step.
+
+
+# ===========================================================================
+# Compendium section registry
+# ===========================================================================
+#
+# Maps section numbers to their canonical section names as they appear in
+# the document header. Used to validate section_number inputs and to
+# auto-populate section_name when the number is known.
+#
+# Add new sections here as the compendium grows.
+
+sections:
+  "1": "NUCLEIC ACID EXTRACTION & PURIFICATION"
+  "2": "cDNA SYNTHESIS & GENE EXPRESSION"
+  "3": "CLONING & PLASMID ENGINEERING"
+  "4": "TRANSGENESIS AND GENOME EDITING"
+  "5": "RNA PROBES & IN SITU HYBRIDISATION"
+  "6": "HISTOLOGY, IMMUNOFLUORESCENCE & IMAGING"
+  "7": "CELL & TISSUE PREPARATION"
+  "8": "ANIMAL TECHNIQUES & REPRODUCTIVE BIOLOGY"
+  "9": "COMPUTATIONAL METHODS & BIOINFORMATICS"
+
+
+# ===========================================================================
+# Typography
+# ===========================================================================
+#
+# All sizes in half-points (docx npm package convention).
+# 1 pt = 2 half-points.  E.g. 10.5pt = 21, 12pt = 24, 14pt = 28.
+
+typography:
+
+  wet_lab:
+    body_font: "Georgia"
+    body_size: 21            # 10.5pt
+    heading_font: "Calibri"
+    h1_size: 28              # 14pt
+    h2_size: 24              # 12pt
+    h3_size: 21              # 10.5pt
+    code_font: "Courier New"
+    code_size: 19            # 9.5pt
+
+  computational:
+    body_font: "Calibri"
+    body_size: 21            # 10.5pt
+    heading_font: "Calibri"
+    h1_size: 28              # 14pt
+    h2_size: 24              # 12pt
+    h3_size: 21              # 10.5pt
+    code_font: "Courier New"
+    code_size: 19            # 9.5pt
+
+
+# ===========================================================================
+# Colours
+# ===========================================================================
+#
+# Hex values without the leading #, as expected by the docx npm package.
+#
+# Palette reference:
+#   navy        — H1 text, document header accent
+#   cornflower  — H1 underrule, H2 left bar, code block left border
+#   white       — standard body text / table cell background
+#   light_grey  — table header row background
+#   (callout backgrounds are defined per callout type below)
+#
+# All colour names for callouts (aside from red) are taken from www.color-name.com based on input hex codes - I make no claims to the accuracy of these names! RGB, CMYK and HSV values are included for traceability.
+
+colours:
+  navy: "1A5FA8"          # "Fun Blue"; RGB (26, 95, 168) / CMYK (85%, 44%, 0%, 34%) / HSV (211°, 85%, 66%)
+  cornflower: "3B8BD4"    # "Compose Blue"; RGB (59, 139, 212) / CMYK (72%, 34%, 0%, 17%) / HSV (209°, 72%, 83%)
+  white: "FFFFFF"         # White; RGB (255, 255, 255) / CMYK (0%, 0%, 0%, 0%) / HSV (0°, 0%, 100%)
+  light_grey: "F5F5F5"    # "Tech White"; RGB (245, 245, 245) / CMYK (0%, 0%, 0%, 4%) / HSV (0°, 0%, 96%)
+  black: "000000"         # Black; RGB (0, 0, 0) / CMYK (0%, 0%, 0%, 100%) / HSV (0°, 0%, 0%)
+
+  callout_backgrounds:
+    critical: "FFC5C5"    # "Smoothie"; RGB (255, 197, 197) / CMYK (0%, 23%, 23%, 0%) / HSV (0°, 23%, 100%)
+    caution:  "FFF8E1"    # "Gin Fizz"; RGB (255, 248, 225) / CMYK (0%, 3%, 12%, 0%) / HSV (48°, 12%, 100%)
+    tip:      "E8F5E9"    # "Gin"; RGB (232, 245, 233) / CMYK (5%, 0%, 5%, 4%) / HSV (125°, 5%, 96%)
+    note:     "EBF3FB"    # "Alpine White"; RGB (235, 243, 251) / CMYK (6%, 3%, 0%, 2%) / HSV (210°, 6%, 98%)
+
+  callout_borders:
+    critical: "FF0000"    # Red; RGB (255, 0, 0) / CMYK (0%, 100%, 100%, 0%) / HSV (0°, 100%, 100%)
+    caution:  "E8A800"    # "Mustard Yellow"; RGB (232, 168, 0) / CMYK (0%, 28%, 100%, 9%) / HSV (43°, 100%, 91%)
+    tip:      "2E7D32"    # "Taurus"; RGB (46, 125, 50) / CMYK (63%, 0%, 60%, 51%) / HSV (123°, 63%, 49%)
+    note:     "3B8BD4"    # "Compose Blue"; RGB (59, 139, 212) / CMYK (72%, 34%, 0%, 17%) / HSV (209°, 72%, 83%)
+
+
+# ===========================================================================
+# Page layout
+# ===========================================================================
+
+page:
+  size: "A4"
+  # Margins in twips (1 cm = 567 twips, 2 cm = 1134 twips)
+  margin_top: 1134
+  margin_bottom: 1134
+  margin_left: 1134
+  margin_right: 1134
+
+
+# ===========================================================================
+# Duplicate detection
+# ===========================================================================
+#
+# DEVNOTE003: Filename-based duplicate guard for batch runs.
+# Case-insensitive comparison after stripping path components and normalising
+# whitespace. Upgrade to SHA-256 hash registry if stronger deduplication
+# is required in future.
+
+duplicate_detection:
+  mode: "filename"          # "filename" | "hash" (hash not yet implemented)
+  case_sensitive: false
+
+
+# ===========================================================================
+# Logging
+# ===========================================================================
+
+logging:
+  # loguru log level: TRACE | DEBUG | INFO | SUCCESS | WARNING | ERROR | CRITICAL
+  level: "INFO"
+
+  # If true, write a log file alongside each output .docx.
+  write_log_file: false

@@ -1,0 +1,108 @@
+# ProtocolFormatter .gitignore
+
+# =============================================================================
+# Python
+# =============================================================================
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# Type checker caches
+.mypy_cache/
+.ruff_cache/
+.pyright/
+
+# =============================================================================
+# Node.js
+# =============================================================================
+
+# Local dependencies — installed per-machine via `npm install docx`
+renderer/templates/node_modules/
+
+# npm debug logs
+npm-debug.log*
+
+# package-lock.json — not committing since this is a single local dependency;
+# remove this line if we want to lock the docx package version
+renderer/templates/package-lock.json
+
+# =============================================================================
+# Protocol formatter outputs
+# =============================================================================
+
+# Generated .docx files — these are tool outputs, not source artefacts
+output/
+*.docx
+
+# =============================================================================
+# Ollama / model artefacts
+# =============================================================================
+
+# Model weights if accidentally downloaded into the project directory
+*.gguf
+*.ggml
+*.bin
+
+# =============================================================================
+# OS artefacts
+# =============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.fuse_hidden*
+.Trash-*
+
+# =============================================================================
+# VSCode
+# =============================================================================
+
+.vscode/
+!.vscode/extensions.json   # keep shared extension recommendations if present
+
+# =============================================================================
+# Secrets and local config overrides
+# =============================================================================
+
+# Never commit local config overrides or credentials
+*.env
+.env
+secrets.yaml
+local_config.yaml
