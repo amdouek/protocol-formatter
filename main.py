@@ -544,9 +544,15 @@ def batch(
 
     sources = sorted(source_dir.glob(glob))
     # Also pick up .doc files if the glob only covers .docx
-    if "*.docx" in glob and not any(glob.endswith(".doc") for _ in [None]):
-        doc_glob = glob.replace("*.docx", "*.doc")
-        sources = sorted(list(sources) + list(source_dir.glob(doc_glob)))
+    if glob.endswith("*.docx"):
+        doc_glob = glob[:-len("*.docx")] + "*.doc"
+        doc_sources = list(source_dir.glob(doc_glob))
+        # Merge and deduplicate (by resolved path), maintaining sort order
+        seen_paths = {p.resolve() for p in sources}
+        for p in doc_sources:
+            if p.resolve() not in seen_paths:
+                sources.append(p)
+        sources = sorted(sources)
 
     if not sources:
         console.print(
