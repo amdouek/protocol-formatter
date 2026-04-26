@@ -243,7 +243,7 @@ _CALLOUT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "critical",
         re.compile(
-            r"\b(CRITICAL|critical step|do not|must not|protocol will fail)\b", # See notes in style_guide.yaml for potential variations to make
+            r"\b(CRITICAL|critical step|do not|must not|protocol will fail|crucial)\b", # See notes in style_guide.yaml for potential variations to make
             re.IGNORECASE,
         ),
     ),
@@ -513,6 +513,22 @@ def normalise_centrifuge_units(text: str) -> str:
     text = re.sub(r'(\d)\s*[xX]\s*g\b', r'\1 x g', text)
     return text
 
+def normalise_temperature_units(text: str) -> str:
+    """
+    Normalise temperature notation to use the proper degree symbol.
+
+    Converts:
+        4o C  →  4 °C
+        37o C →  37 °C
+        -20oC →  -20 °C
+        55°C →  55 °C   (normalise spacing)
+    """
+    # Letter o used as degree symbol before C or F
+    text = re.sub(r'(\d)\s*[oO]\s*([CF])\b', r'\1°\2', text)
+    # Existing degree symbol but inconsistent spacing, also handles decimal temperatures like 37.5 °C
+    text = re.sub(r'(\d+(?:\.\d+)?)\s*°\s*([CF])\b', r'\1 °\2', text)
+    return text
+
 # ---------------------------------------------------------------------------
 # Heading level heuristics (for plain-text / pandoc fallback paths)
 # ---------------------------------------------------------------------------
@@ -627,6 +643,13 @@ def extract_author(text: str) -> str:
         return "ARMI"
     if _KNOWN_AUTHOR.search(text):
         return "Alon Douek"
+    # Reject software-generated Office default author names
+    _DEFAULT_OFFICE_AUTHORS = re.compile(
+        r"^(microsoft office user|windows user|user|owner|author|admin)$",
+        re.IGNORECASE,
+    )
+    if _DEFAULT_OFFICE_AUTHORS.match(text.strip()):
+        return "ARMI"
     # Return cleaned raw text; LLM extractor will refine further
     return normalise_whitespace(text)
 

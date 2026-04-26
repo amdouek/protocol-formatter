@@ -87,6 +87,7 @@ callouts:
       - "do not" # This might be too generic and could trigger false positives. Will need to calibrate against test protocols to observe behaviour in situ
       - "protocol will fail"
       - "must not" # As above - stronger term than "do not" but still potential for false positives. Need to stress test
+      - "crucial"
     description: >
       Genuine failure points, i.e., steps where non-adherence causes the protocol
       to break down. Use sparingly. Rendered in red.

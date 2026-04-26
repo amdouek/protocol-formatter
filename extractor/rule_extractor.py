@@ -42,6 +42,39 @@ from loguru import logger
 _PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 _STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
 
+# Known acronyms that should remain fully uppercase in titles
+_ACRONYMS = frozenset({
+    "RNA", "DNA", "PCR", "RT", "FISH", "ISH", "FACS", "GFP", "RFP",
+    "YFP", "CFP", "mRNA", "gRNA", "sgRNA", "crRNA", "siRNA", "shRNA",
+    "ChIP", "ATAC", "HCR", "smFISH", "CRISPR", "LNP", "IHC", "IF",
+    "PBS", "BSA", "EDTA", "DMSO", "EtOH", "dH2O", "ddH2O",
+})
+
+# Small words that should not be capitalised unless first or last
+_LOWERCASE_WORDS = frozenset({
+    "a", "an", "the", "and", "but", "or", "for", "nor", "on", "at",
+    "to", "by", "in", "of", "up", "as", "is",
+})
+
+def _title_case(text: str) -> str:
+    """
+    Apply title case to a protocol title, preserving known acronyms and
+    applying standard English title-case rules (small words lowercase
+    unless first or last word).
+    """
+    words = text.split()
+    result = []
+    for i, word in enumerate(words):
+        upper = word.upper()
+        if upper in _ACRONYMS:
+            result.append(upper)
+        elif i == 0 or i == len(words) - 1:
+            result.append(word.capitalize())
+        elif word.lower() in _LOWERCASE_WORDS:
+            result.append(word.lower())
+        else:
+            result.append(word.capitalize())
+    return " ".join(result)
 
 def _load_cfg() -> dict:
     if not _STYLE_GUIDE_PATH.exists():
@@ -171,7 +204,8 @@ def extract_protocol_heuristic(
                 title = p.raw_text
                 break
     if not title:
-        title = Path(fname).stem.replace("_", " ").replace("-", " ").title()
+        raw = Path(fname).stem.replace("_", " ").replace("-", " ")
+        title = _title_case(raw)
 
     # ------------------------------------------------------------------
     # 2. Metadata from parsed document
@@ -232,18 +266,29 @@ def extract_protocol_heuristic(
     # 5. Overview
     # ------------------------------------------------------------------
     overview_paras = segments["overview"] or segments["pre_overview"]
+    from parser.utils import is_stopping_point
     overview_text = "\n\n".join(
         p.text for p in overview_paras
-        if p.heading_level == 0 and not p.is_list_item
+        if p.heading_level == 0
+        and not p.is_list_item
+        and not is_stopping_point(p.raw_text)
+        and len(p.raw_text) > 20
     ).strip()
     if not overview_text:
-        # Absolute fallback: first non-heading paragraph in the document
+        # Absolute fallback: first non-heading, non-list, non-stopping-point
+        # paragraph in the document that reads like a description (not a
+        # terminal instruction like "store at -80C")
         for p in paras:
-            if p.heading_level == 0 and not p.is_list_item and len(p.raw_text) > 20:
+            if (p.heading_level == 0
+                    and not p.is_list_item
+                    and not is_stopping_point(p.raw_text)
+                    and len(p.raw_text) > 40):
                 overview_text = p.text
                 break
+    # If still nothing suitable found, leave blank rather than populate
+    # with nonsense — the --review step will flag the empty field
     if not overview_text:
-        overview_text = f"Protocol: {title}."
+        overview_text = ""
 
     # ------------------------------------------------------------------
     # 6. Prerequisites (computational only)
@@ -373,6 +418,7 @@ def _extract_procedure(procedure_paras: list) -> list:
     List items / prose paragraphs → ActionStep or StoppingPoint or Callout.
     """
     from schema import ProcedureSection, ActionStep, StoppingPoint, Callout, CalloutType, Step
+    from parser.utils import detect_callout_type, strip_callout_prefix
 
     if not procedure_paras:
         return []
@@ -419,12 +465,25 @@ def _extract_procedure(procedure_paras: list) -> list:
             current_steps.append(StoppingPoint(text=para.text, children=[]))
 
         elif classification == "step":
-            # Nest based on list_level
+            # Check if a list item contains an inline CRITICAL/CRUCIAL statement
+            # and if so, also emit a callout for it
+            inline_ct = detect_callout_type(para.raw_text)
+            if inline_ct in ("critical", "caution"):
+                # Only promote to callout if not already covered in current_callouts
+                already_present = any(
+                    c.callout_type.value == inline_ct for c in current_callouts
+                )
+                if not already_present:
+                    current_callouts.append(
+                        Callout(
+                            callout_type=CalloutType(inline_ct),
+                            text=strip_callout_prefix(para.raw_text),
+                        )
+                    )
             step = ActionStep(text=para.text, children=[])
             if para.list_level <= 1 or not current_steps:
                 current_steps.append(step)
             else:
-                # Attach to last top-level step as a child
                 _attach_child(current_steps, step, para.list_level)
 
         elif classification == "prose":

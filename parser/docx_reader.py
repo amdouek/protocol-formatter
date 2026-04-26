@@ -48,6 +48,7 @@ from .utils import (
     normalise_whitespace,
     normalise_cross_references,
     normalise_centrifuge_units,
+    normalise_temperature_units,
     runs_to_marked_text,
     extract_author,
     normalise_date,
@@ -541,6 +542,7 @@ def read_docx(source_path: Path) -> ParsedDocument:
             raw_text = normalise_whitespace(item.text)
             marked_text = normalise_cross_references(marked_text)
             marked_text = normalise_centrifuge_units(marked_text)
+            marked_text = normalise_temperature_units(marked_text)
 
             style_name: str = (item.style.name or "") if item.style else ""
             heading_level = infer_heading_level(raw_text, style_name)

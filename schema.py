@@ -338,11 +338,13 @@ class Protocol(BaseModel):
     # --- Front matter ---
     overview: str = Field(
         ...,
-        min_length=1,
+        min_length=0,
         description=(
             "1–3 sentence overview of the protocol's purpose, expected duration, "
             "and biological or computational context. Mention critical prerequisites "
-            "or linked protocols. Supports **bold** and _italic_ markers."
+            "or linked protocols. Supports **bold** and _italic_ markers. "
+            "Use an empty string if no overview is extractable — the --review step "
+            "will flag it for manual completion."
         ),
     )
 
