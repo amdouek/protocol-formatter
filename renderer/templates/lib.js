@@ -159,19 +159,22 @@ function parseInline(text, baseOpts = {}) {
 
   const runs = [];
   // Regex alternation: **...** then _..._ then plain text chunk
-  const pattern = /\*\*(.+?)\*\*|_(.+?)_|([^*_]+|[*_])/g;
+  const pattern = /_\*\*(.+?)\*\*_|\*\*(.+?)\*\*|_(.+?)_|([^*_]+|[*_])/g;
   let match;
 
   while ((match = pattern.exec(text)) !== null) {
     if (match[1] !== undefined) {
-      // Bold span
-      runs.push(new TextRun({ text: match[1], bold: true, ...baseOpts }));
+      // Bold + italic span
+      runs.push(new TextRun({ text: match[1], bold: true, italics: true, ...baseOpts }));
     } else if (match[2] !== undefined) {
-      // Italic span
-      runs.push(new TextRun({ text: match[2], italics: true, ...baseOpts }));
+      // Bold span
+      runs.push(new TextRun({ text: match[2], bold: true, ...baseOpts }));
     } else if (match[3] !== undefined) {
-      // Plain text (or a stray * / _ character)
-      runs.push(new TextRun({ text: match[3], ...baseOpts }));
+      // Italic span
+      runs.push(new TextRun({ text: match[3], italics: true, ...baseOpts }));
+    } else if (match[4] !== undefined) {
+      // Plain text
+      runs.push(new TextRun({ text: match[4], ...baseOpts }));
     }
   }
 

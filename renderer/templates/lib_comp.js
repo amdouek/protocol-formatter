@@ -348,7 +348,7 @@ function parseCompInline(text) {
 
   const runs = [];
   // Pattern: `code`, **bold**, _italic_, plain chunk, or stray punctuation
-  const pattern = /`([^`]+)`|\*\*(.+?)\*\*|_(.+?)_|([^`*_]+|[`*_])/g;
+  const pattern = /`([^`]+)`|_\*\*(.+?)\*\*_|\*\*(.+?)\*\*|_(.+?)_|([^`*_]+|[`*_])/g;
   let match;
 
   while ((match = pattern.exec(text)) !== null) {
@@ -358,14 +358,17 @@ function parseCompInline(text) {
         new TextRun({ text: match[1], font: FONT.CODE, size: SIZE.CODE })
       );
     } else if (match[2] !== undefined) {
-      // Bold
-      runs.push(new TextRun({ text: match[2], ...COMP_FONT_OPTS, bold: true }));
+      // Bold + italic
+      runs.push(new TextRun({ text: match[2], ...COMP_FONT_OPTS, bold: true, italics: true }));
     } else if (match[3] !== undefined) {
-      // Italic
-      runs.push(new TextRun({ text: match[3], ...COMP_FONT_OPTS, italics: true }));
+      // Bold
+      runs.push(new TextRun({ text: match[3], ...COMP_FONT_OPTS, bold: true }));
     } else if (match[4] !== undefined) {
+      // Italic
+      runs.push(new TextRun({ text: match[4], ...COMP_FONT_OPTS, italics: true }));
+    } else if (match[5] !== undefined) {
       // Plain
-      runs.push(new TextRun({ text: match[4], ...COMP_FONT_OPTS }));
+      runs.push(new TextRun({ text: match[5], ...COMP_FONT_OPTS }));
     }
   }
 

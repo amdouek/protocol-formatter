@@ -198,7 +198,7 @@ def runs_to_marked_text(runs: list[dict]) -> str:
             parts.append(leading)
 
         if seg["bold"] and seg["italic"]:
-            parts.append(f"**{inner}**")
+            parts.append(f"_**{inner}**_")
         elif seg["bold"]:
             parts.append(f"**{inner}**")
         else:
