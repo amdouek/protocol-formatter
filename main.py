@@ -91,6 +91,27 @@ def _configure_logging(cfg: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Pipeline result type
+# ---------------------------------------------------------------------------
+
+from enum import Enum
+from dataclasses import dataclass
+
+
+class ResultStatus(Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+@dataclass
+class PipelineResult:
+    """Outcome of a single _process_one() invocation."""
+    status: ResultStatus
+    output_path: Optional[Path] = None
+    reason: str = ""
+
+# ---------------------------------------------------------------------------
 # Duplicate detection (DEV-003)
 # ---------------------------------------------------------------------------
 
@@ -280,11 +301,11 @@ def _process_one(
     do_review: bool,
     cfg: dict,
     detector: DuplicateDetector,
-) -> Optional[Path]:
+) -> PipelineResult:
     """
     Run the full pipeline for a single source document.
 
-    Returns the output Path on success, or None on failure/skip.
+    Returns a PipelineResult indicating the outcome.
     """
     from parser import read_document
     from extractor.llm_extractor import (
@@ -302,7 +323,7 @@ def _process_one(
             f"[yellow]⚠  Duplicate:[/yellow] '{source_path.name}' has already been "
             "processed in this batch. Skipping."
         )
-        return None
+        return PipelineResult(ResultStatus.SKIPPED, reason="duplicate")
 
     console.print(f"\n[bold]Processing:[/bold] {source_path.name}")
 
@@ -312,7 +333,7 @@ def _process_one(
             parsed = read_document(source_path)
     except (FileNotFoundError, ValueError, RuntimeError) as exc:
         console.print(f"[red]Parse error:[/red] {exc}")
-        return None
+        return PipelineResult(ResultStatus.FAILED, reason=str(exc))
 
     console.print(
         f"  Parsed: {len(parsed.paragraphs)} paragraphs, "
@@ -333,7 +354,7 @@ def _process_one(
                 )
         except Exception as exc:
             console.print(f"[red]Heuristic extraction error:[/red] {exc}")
-            return None
+            return PipelineResult(ResultStatus.FAILED, reason=str(exc))
     else:
         # Preflight: check Ollama is running before attempting extraction
         base_url = cfg.get("ollama", {}).get("base_url", "http://localhost:11434")
@@ -344,7 +365,7 @@ def _process_one(
                 "Start Ollama with [bold]ollama serve[/bold], or use "
                 "[bold]--heuristic[/bold] to skip LLM extraction."
             )
-            return None
+            return PipelineResult(ResultStatus.FAILED, reason=msg)
 
         try:
             with console.status(
@@ -358,10 +379,10 @@ def _process_one(
                 )
         except OllamaUnavailableError as exc:
             console.print(f"[red]Ollama error:[/red] {exc}")
-            return None
+            return PipelineResult(ResultStatus.FAILED, reason=str(exc))
         except ExtractionError as exc:
             console.print(f"[red]Extraction failed:[/red] {exc}")
-            return None
+            return PipelineResult(ResultStatus.FAILED, reason=str(exc))
 
     console.print(
         f"  Extracted: [bold]{protocol.title!r}[/bold] "
@@ -373,7 +394,7 @@ def _process_one(
         try:
             protocol = _run_review_step(protocol)
         except typer.Exit:
-            return None
+            return PipelineResult(ResultStatus.FAILED, reason="aborted by user")
 
     # ── Render ───────────────────────────────────────────────────────────────
     try:
@@ -381,13 +402,13 @@ def _process_one(
             output_path = render_protocol(protocol, output_dir=output_dir)
     except RendererError as exc:
         console.print(f"[red]Render error:[/red] {exc}")
-        return None
+        return PipelineResult(ResultStatus.FAILED, reason=str(exc))
     except FileNotFoundError as exc:
         console.print(f"[red]Renderer not found:[/red] {exc}")
-        return None
+        return PipelineResult(ResultStatus.FAILED, reason=str(exc))
 
     console.print(f"  [green]✓[/green] Written to: [bold]{output_path}[/bold]")
-    return output_path
+    return PipelineResult(ResultStatus.SUCCESS, output_path=output_path)
 
 
 # ---------------------------------------------------------------------------
@@ -462,7 +483,7 @@ def format(
         detector=detector,
     )
 
-    if result is None:
+    if result.status != ResultStatus.SUCCESS:
         raise typer.Exit(code=1)
 
 
@@ -561,15 +582,12 @@ def batch(
             cfg=cfg,
             detector=detector,
         )
-        if result is None:
-            # Distinguish duplicate (skipped) from error (failed)
-            if detector.check(source_path):
-                # check() returns True if already seen → was a dup skip
-                skipped += 1
-            else:
-                failed += 1
-        else:
+        if result.status == ResultStatus.SUCCESS:
             succeeded += 1
+        elif result.status == ResultStatus.SKIPPED:
+            skipped += 1
+        else:
+            failed += 1
 
     console.rule()
     console.print(
