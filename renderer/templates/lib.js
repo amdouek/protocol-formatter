@@ -83,24 +83,24 @@ const FONT = {
 
 /** Colour palette (no leading #). */
 const COLOR = {
-  NAVY: "1F3864",
-  CORNFLOWER: "4472C4",
+  NAVY: "1A5FA8",
+  CORNFLOWER: "3B8BD4",
   BLACK: "000000",
   WHITE: "FFFFFF",
-  LIGHT_GREY: "F2F2F2",
+  LIGHT_GREY: "F5F5F5",
   MID_GREY: "BFBFBF",
 
   // Callout backgrounds
-  BG_CRITICAL: "FCE4D6",
-  BG_CAUTION: "FFF2CC",
-  BG_TIP: "E2EFDA",
-  BG_NOTE: "DEEAF1",
+  BG_CRITICAL: "FFC5C5",
+  BG_CAUTION: "FFF8E1",
+  BG_TIP: "E8F5E9",
+  BG_NOTE: "EBF3FB",
 
   // Callout left-border colours
   BORDER_CRITICAL: "FF0000",
-  BORDER_CAUTION: "ED7D31",
-  BORDER_TIP: "70AD47",
-  BORDER_NOTE: "4472C4",
+  BORDER_CAUTION: "E8A800",
+  BORDER_TIP: "2E7D32",
+  BORDER_NOTE: "3B8BD4",
 };
 
 /** Callout metadata keyed by callout_type string from the schema. */
