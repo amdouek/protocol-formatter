@@ -798,16 +798,25 @@ function renderMixTable(mixTable) {
 
 /**
  * Render the Overview section.
+ * DEV-004: Splits on \n\n to produce separate Paragraph objects, since
+ * the docx npm package ignores \n inside TextRun.
+ *
  * @param {string} text - Overview text with optional inline markers.
  * @returns {Array<Paragraph>}
  */
 function renderOverview(text) {
+  const chunks = (text || "").split(/\n\n+/).filter(c => c.trim());
+  if (chunks.length === 0) {
+    chunks.push(text || "");
+  }
   return [
     ...heading1("Overview"),
-    new Paragraph({
-      children: parseInline(text, { font: FONT.BODY, size: SIZE.BODY }),
-      spacing: { after: 120 },
-    }),
+    ...chunks.map(chunk =>
+      new Paragraph({
+        children: parseInline(chunk.trim(), { font: FONT.BODY, size: SIZE.BODY }),
+        spacing: { after: 120 },
+      })
+    ),
   ];
 }
 

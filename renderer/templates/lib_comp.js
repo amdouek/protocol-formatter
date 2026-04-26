@@ -460,16 +460,24 @@ function buildComputationalDocument(protocol) {
 
 /**
  * Overview section rendered in Calibri (computational default).
+ * DEV-004: Splits on \n\n to produce separate Paragraph objects.
+ *
  * @param {string} text
  * @returns {Array<Paragraph>}
  */
 function renderCompOverview(text) {
+  const chunks = (text || "").split(/\n\n+/).filter(c => c.trim());
+  if (chunks.length === 0) {
+    chunks.push(text || "");
+  }
   return [
     ...heading1("Overview"),
-    new Paragraph({
-      children: parseInline(text, COMP_FONT_OPTS),
-      spacing: { after: 120 },
-    }),
+    ...chunks.map(chunk =>
+      new Paragraph({
+        children: parseInline(chunk.trim(), COMP_FONT_OPTS),
+        spacing: { after: 120 },
+      })
+    ),
   ];
 }
 
