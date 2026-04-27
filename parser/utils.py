@@ -237,13 +237,18 @@ def strip_markers(text: str) -> str:
 # Callout keyword detection
 # ---------------------------------------------------------------------------
 
-# Keywords per callout type, ordered by priority (highest first).
-# A match on a higher-priority type short-circuits lower types.
+# Heuristic callout patterns — conservative keyword set.
+# Generic terms ("do not", "must not", "note", "optional", "tip") are
+# deliberately excluded here because they produce false positives in
+# routine protocol prose. The LLM extractor receives the full keyword
+# list via prompts.py and can apply semantic judgement; the heuristic
+# extractor cannot, so it uses only high-confidence triggers.
+# See DEVNOTE-034 and style_guide.yaml for the full keyword catalogue.
 _CALLOUT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     (
         "critical",
         re.compile(
-            r"\b(CRITICAL|critical step|do not|must not|protocol will fail|crucial)\b", # See notes in style_guide.yaml for potential variations to make
+            r"\b(CRITICAL|critical step|protocol will fail|crucial)\b",
             re.IGNORECASE,
         ),
     ),
@@ -251,23 +256,23 @@ _CALLOUT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
         "caution",
         re.compile(
             r"\b(IMPORTANT|WARNING|CAUTION|hazard|toxic|corrosive|flammable|"
-            r"carcinogen|biohazard|radiation|RNase|DNase|keep on ice|avoid freeze|handle gently|avoid freeze/thaw|sensitive to)\b",
+            r"carcinogen|biohazard|radiation|RNase|DNase|keep on ice|"
+            r"avoid freeze|avoid freeze/thaw|sensitive to)\b",
             re.IGNORECASE,
         ),
     ),
     (
         "tip",
         re.compile(
-            r"\b(tip|optional|shortcut|alternatively|can also|to improve|"
-            r"for best results|we recommend|works well)\b",
+            r"\b(shortcut|to improve|for best results|works well)\b",
             re.IGNORECASE,
         ),
     ),
     (
         "note",
         re.compile(
-            r"\b(note|see section|refer to|for more information|background|"
-            r"version|alternative|species-specific|see also|cross-reference)\b",
+            r"\b(see section|refer to|for more information|"
+            r"species-specific|see also|cross-reference)\b",
             re.IGNORECASE,
         ),
     ),

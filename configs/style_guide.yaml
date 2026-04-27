@@ -76,6 +76,10 @@ ollama:
 #   critical > caution > tip > note
 #
 # A phrase matching multiple categories is assigned the highest-priority match.
+# NOTE: The heuristic extractor (rule_extractor.py) uses a conservative
+# subset of these keywords to avoid false positives. Generic terms like
+# "do not", "note", "optional" are used only by the LLM extractor, which
+# can apply semantic judgement. See DEVNOTE-034.
 
 callouts:
   critical:
