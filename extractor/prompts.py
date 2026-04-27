@@ -114,6 +114,8 @@ Step = ActionStep | StoppingPoint
 ActionStep = {
   "step_type": "action",
   "text": string,                     // supports **bold** _italic_
+  "code": string | null,              // code block content (computational only); null for wet_lab
+  "code_language": string | null,     // e.g. "bash", "python", "R"; null if unknown
   "children": Step[]                  // nested sub-steps; arbitrary depth
 }
 
@@ -146,17 +148,21 @@ MixTable = {
 - "author" defaults to "ARMI" if the source does not name a specific author.
 - Apply **bold** and _italic_ markers to key parameters in step text \
 (temperatures, volumes, concentrations, durations).
+- For computational protocols: when a step includes a terminal command, script, \
+or code snippet, put the prose instruction in "text" and the executable content \
+in "code". Do not embed code in the "text" field with backtick fencing. \
+Set "code" and "code_language" to null for wet_lab protocols.
 - Do not include callout labels ("Caution:", "Note:") in the callout text field.
-- Callout deduplication: if the same safety or quality concern applies to multiple
-  procedure sections, place the callout ONCE in the first section where it is
-  relevant. Do not repeat identical or near-identical callouts across sections.
-  If a concern is a general reagent hazard (e.g. toxicity), place it in the
+- Callout deduplication: if the same safety or quality concern applies to multiple \
+  procedure sections, place the callout ONCE in the first section where it is \
+  relevant. Do not repeat identical or near-identical callouts across sections. \
+  If a concern is a general reagent hazard (e.g. toxicity), place it in the \
   first procedure section or as a preamble callout, not in every section.
-- Callout self-containment: callout text must be fully intelligible in isolation,
-  without requiring the reader to refer to surrounding steps. Replace all
-  context-dependent pronouns and references ("this phase", "the sample",
-  "here") with specific named entities ("the upper aqueous phase", "the RNA
-  pellet", "the TRIzol homogenate"). A reader seeing only the callout box
+- Callout self-containment: callout text must be fully intelligible in isolation, \
+  without requiring the reader to refer to surrounding steps. Replace all \
+  context-dependent pronouns and references ("this phase", "the sample", \
+  "here") with specific named entities ("the upper aqueous phase", "the RNA \
+  pellet", "the TRIzol homogenate"). A reader seeing only the callout box \
   must understand exactly what it refers to.
 - For unknown supplier or catalogue number, use "—".
 """

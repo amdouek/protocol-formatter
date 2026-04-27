@@ -263,9 +263,9 @@ function renderCompProcedure(procedureSections) {
 
 /**
  * Recursively render computational protocol steps.
- * Detects fenced code blocks (``` ... ```) within ActionStep.text and
- * splits them into a prose paragraph + codeBlock table.
- * Inline backtick code (`...`) is rendered in Courier New inline.
+ * If a step has a `code` field, it is rendered as a codeBlock() table
+ * after the step text paragraph. Inline backtick code (`...`) within
+ * step text is rendered in Courier New inline.
  *
  * @param {object[]} steps - Array of Step objects.
  * @param {number}   depth - Current nesting depth.
@@ -280,32 +280,28 @@ function renderCompSteps(steps, depth = 0) {
       continue;
     }
 
-    // Detect fenced code block: text starts with ``` or contains ```
-    const fencedMatch = step.text.match(/^```(?:(\w+)\n)?([\s\S]*?)```\s*$/s);
-    const hasFencedBlock = Boolean(fencedMatch);
+    // Step text paragraph
+    const runs = parseCompInline(step.text);
+    const numRef = getNumRef(depth);
 
-    if (hasFencedBlock) {
-      const lang = fencedMatch[1] || null;
-      const code = fencedMatch[2].trimEnd();
-      elements.push(codeBlock(code, lang));
-    } else {
-      // Render inline backticks as Courier New runs
-      const runs = parseCompInline(step.text);
-      const numRef = getNumRef(depth);
+    const para = numRef
+      ? new Paragraph({
+          numbering: { reference: numRef, level: 0 },
+          children: runs,
+          spacing: { after: 60 },
+        })
+      : new Paragraph({
+          children: runs,
+          spacing: { after: 60 },
+          indent: { left: 720 + depth * 360 },
+        });
 
-      const para = numRef
-        ? new Paragraph({
-            numbering: { reference: numRef, level: 0 },
-            children: runs,
-            spacing: { after: 60 },
-          })
-        : new Paragraph({
-            children: runs,
-            spacing: { after: 60 },
-            indent: { left: 720 + depth * 360 },
-          });
+    elements.push(para);
 
-      elements.push(para);
+    // Associated code block (if present)
+    if (step.code) {
+      elements.push(codeBlock(step.code, step.code_language || null));
+      elements.push(spacer(60));
     }
 
     // Recurse into children

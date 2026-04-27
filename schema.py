@@ -153,6 +153,11 @@ class ActionStep(BaseModel):
     Steps support arbitrary nesting via the children field, mirroring the
     indentation levels present in source documents (main step → sub-step →
     tertiary detail). There is no fixed depth limit.
+
+    For computational protocols, a step may include an associated code block
+    rendered after the step text in Courier New with a cornflower left border.
+    The ``code`` field is separate from ``text`` so that prose instructions
+    and executable commands have distinct semantic identities.
     """
     step_type: Literal[StepType.ACTION] = StepType.ACTION
 
@@ -162,6 +167,23 @@ class ActionStep(BaseModel):
         description=(
             "Instruction text for this step. Supports **bold** and _italic_ markers. "
             "Key parameters (temperatures, volumes, times) should be bolded."
+        ),
+    )
+    code: Optional[str] = Field(
+        default=None,
+        description=(
+            "Code block content associated with this step. Rendered after the "
+            "step text in monospace font with a cornflower left border. Used in "
+            "computational protocols for terminal commands, scripts, or config "
+            "snippets. None for wet-lab protocols or steps with no code."
+        ),
+    )
+    code_language: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional language label for the code block (e.g. 'bash', 'python', "
+            "'R'). Rendered as a muted comment line above the code. None if the "
+            "language is not specified or not applicable."
         ),
     )
     children: list[Step] = Field(
