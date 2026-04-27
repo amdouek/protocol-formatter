@@ -982,7 +982,8 @@ function endOfProtocol() {
  * @param {object} protocol - Top-level Protocol schema object.
  * @returns {Paragraph[]}
  */
-function renderTitleBlock(protocol) {
+function renderTitleBlock(protocol, fontOpts = {}) {
+  const bodyFont = { font: FONT.BODY, size: SIZE.BODY, ...fontOpts };
   const elements = [];
 
   // Title
@@ -1008,8 +1009,7 @@ function renderTitleBlock(protocol) {
         children: [
           new TextRun({
             text: protocol.subtitle,
-            font: FONT.BODY,
-            size: SIZE.BODY,
+            ...bodyFont,
             italics: true,
             color: COLOR.BLACK,
           }),
@@ -1030,8 +1030,7 @@ function renderTitleBlock(protocol) {
       children: [
         new TextRun({
           text: bylineText,
-          font: FONT.BODY,
-          size: SIZE.BODY,
+          ...bodyFont,
           color: COLOR.MID_GREY,
         }),
       ],

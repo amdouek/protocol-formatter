@@ -399,7 +399,7 @@ function buildComputationalDocument(protocol) {
 
   // Assemble body content (Calibri font throughout)
   const body = [
-    ...renderTitleBlock(protocol),
+    ...renderTitleBlock(protocol, COMP_FONT_OPTS),
     ...renderCompOverview(protocol.overview),
     ...renderPrerequisites(protocol.prerequisites),
     ...renderCompProcedure(protocol.procedure),
