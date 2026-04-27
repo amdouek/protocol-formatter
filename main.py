@@ -622,11 +622,16 @@ def check() -> None:
 
     all_ok = True
 
-    def _row(label: str, ok: bool, detail: str) -> None:
+    def _row(label: str, ok: bool, detail: str, optional: bool = False) -> None:
         nonlocal all_ok
-        icon = "[green]✓[/green]" if ok else "[red]✗[/red]"
+        if ok:
+            icon = "[green]✓[/green]"
+        elif optional:
+            icon = "[yellow]○[/yellow]"
+        else:
+            icon = "[red]✗[/red]"
         console.print(f"  {icon}  {label}: {detail}")
-        if not ok:
+        if not ok and not optional:
             all_ok = False
 
     # Node.js
@@ -665,15 +670,20 @@ def check() -> None:
     from parser.doc_reader import check_pandoc_available
     pandoc_exe = cfg.get("paths", {}).get("pandoc_executable", "pandoc")
     ok4, msg4 = check_pandoc_available(pandoc_exe)
-    _row(f"pandoc (.doc support)", ok4, msg4 if ok4 else f"{msg4} [dim](optional)[/dim]")
+    _row(
+        "pandoc (.doc support)",
+        ok4,
+        msg4 if ok4 else f"{msg4} [dim](optional — needed only for .doc files)[/dim]",
+        optional=True,
+    )
 
     console.print()
     if all_ok:
         console.print("[bold green]All checks passed.[/bold green]")
     else:
         console.print(
-            "[bold yellow]Some checks failed.[/bold yellow] "
-            "Fix the issues above before running protocol-formatter."
+            "[bold red]Some checks failed.[/bold red] "
+            "Fix the issues marked [red]✗[/red] above before running protocol-formatter."
         )
         raise typer.Exit(code=1)
 
