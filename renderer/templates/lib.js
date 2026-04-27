@@ -839,11 +839,8 @@ function renderMaterials(materialsTables) {
 
 /**
  * Render the full Procedure section.
- * Callouts associated with a ProcedureSection are placed at the top of that
- * section. If the source document implies a specific position for a callout,
- * the extractor should interleave callouts within the steps array as
- * separate callout-bearing wrapper objects; otherwise top-of-section
- * placement is the default.
+ * Callouts are rendered at the top of each ProcedureSection, after any
+ * preamble paragraph but before the first step.
  *
  * @param {object[]} procedureSections - Array of ProcedureSection objects.
  * @param {object}   [fontOpts]        - Font overrides for step text.

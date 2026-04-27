@@ -236,10 +236,9 @@ class ProcedureSection(BaseModel):
     callouts: list[Callout] = Field(
         default_factory=list,
         description=(
-            "Callout boxes associated with this section. The renderer places each "
-            "callout at the position it appears in this list, interleaved with steps "
-            "if the source document indicates a specific position. If position is "
-            "ambiguous, callouts are placed at the top of the section."
+            "Callout boxes associated with this section. Rendered at the top of "
+            "the section, after any preamble but before the first step. Callouts "
+            "appear in the order they are listed here."
         ),
     )
 
