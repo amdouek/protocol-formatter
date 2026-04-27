@@ -498,19 +498,19 @@ def normalise_cross_references(text: str) -> str:
 
 def normalise_centrifuge_units(text: str) -> str:
     """
-    Normalise centrifuge speed notation to x g format.
+    Normalise centrifuge speed notation to × g format. (Note: use of multiplication symbol, not the letter "x".)
 
     Converts italic/bold g markers that follow a number:
-        12,000*g*  →  12,000 x g
-        12,000_g_  →  12,000 x g
-        12,000 x g →  12,000 x g
-        12,000 xg  →  12,000 x g
+        12,000*g*  →  12,000 × g
+        12,000_g_  →  12,000 × g
+        12,000 x g →  12,000 × g
+        12,000 xg  →  12,000 × g
     """
     # Remove italic/bold markers around g following a number
-    text = re.sub(r'(\d)\s*\*g\*', r'\1 x g', text)
-    text = re.sub(r'(\d)\s*_g_', r'\1 x g', text)
-    # Normalise plain "x g" and "xg" variants
-    text = re.sub(r'(\d)\s*[xX]\s*g\b', r'\1 x g', text)
+    text = re.sub(r'(\d)\s*\*g\*', r'\1 × g', text)
+    text = re.sub(r'(\d)\s*_g_', r'\1 × g', text)
+    # Normalise plain "x g" and "xg" variants to use '×'
+    text = re.sub(r'(\d)\s*[xX]\s*g\b', r'\1 × g', text)
     return text
 
 def normalise_temperature_units(text: str) -> str:

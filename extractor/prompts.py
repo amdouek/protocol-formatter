@@ -245,7 +245,7 @@ def build_style_guide_context(cfg: Optional[dict] = None) -> str:
         "### Inline formatting\n"
         "Apply **bold** to: temperatures, volumes, concentrations, durations, "
         "centrifuge speeds, critical reagent names.\n"
-        "Centrifuge speeds must be formatted as **number x g** (e.g. 12,000 x g),"
+        "Centrifuge speeds must be formatted as **number × g** (e.g. 12,000 × g),"
         "never use the form '*g*', 'xg' or '_g_'.\n"
         "Apply _italic_ to: gene names, species names, Latin terms.\n"
     )
