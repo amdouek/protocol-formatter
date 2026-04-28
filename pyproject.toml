@@ -53,6 +53,17 @@ packages = [
 "renderer/templates/render.js"     = "renderer/templates/render.js"
 "__main__.py"                      = "__main__.py"
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "*.py",
+    "parser/**/*.py",
+    "extractor/**/*.py",
+    "renderer/**/*.py",
+    "renderer/templates/*.js",
+    "configs/*.yaml",
+    "tests/**/*.py",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 timeout = 120
