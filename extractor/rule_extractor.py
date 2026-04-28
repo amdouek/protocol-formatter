@@ -525,6 +525,13 @@ def _strip_callout_text(text: str) -> str:
 # Materials extraction helpers
 # ---------------------------------------------------------------------------
 
+def _pad_cells(cells: list[str], width: int) -> list[str]:
+    """Pad a cell list with em-dashes or trim to exactly ``width`` elements."""
+    if len(cells) < width:
+        return cells + ["\u2014"] * (width - len(cells))
+    return cells[:width]
+
+
 def _extract_materials(material_paras: list, all_tables) -> list:
     """
     Extract MaterialsTable objects from paragraphs and tables in the Materials
@@ -564,11 +571,10 @@ def _extract_materials(material_paras: list, all_tables) -> list:
         heading = headings_seen[i] if i < len(headings_seen) else "Reagents"
         rows = [
             TableRow(
-                cells=[c.strip() or "\u2014" for c in row[:3]],
+                cells=_pad_cells([c.strip() or "\u2014" for c in row[:3]], 3),
                 bold=False,
             )
             for row in table.rows
-            # Skip rows that look like headers (all cells are short and bold-ish)
             if not _is_header_row(row)
         ]
         if rows:
@@ -622,7 +628,7 @@ def _extract_mix_tables(mix_paras: list, all_tables) -> list:
         for row in table.rows:
             if _is_header_row(row):
                 continue
-            cells = [c.strip() or "\u2014" for c in row[:2]]
+            cells = _pad_cells([c.strip() or "\u2014" for c in row[:2]], 2)
             first = cells[0] if cells else ""
             bold = bool(re.match(r"^(total|incubate)", first, re.IGNORECASE))
             rows.append(TableRow(cells=cells, bold=bold))

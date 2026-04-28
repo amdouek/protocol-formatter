@@ -117,6 +117,17 @@ class MaterialsTable(BaseModel):
         description="Data rows. Do not include the header row — the renderer adds it.",
     )
 
+    @model_validator(mode="after")
+    def validate_row_widths(self) -> "MaterialsTable":
+        """Ensure every row has exactly 3 cells (Reagent / Supplier / Cat. No.)."""
+        for i, row in enumerate(self.rows):
+            if len(row.cells) != 3:
+                raise ValueError(
+                    f"MaterialsTable row {i} has {len(row.cells)} cell(s); "
+                    f"expected 3 (Reagent / Supplier / Cat. No.)."
+                )
+        return self
+
 
 class MixTable(BaseModel):
     """
@@ -140,6 +151,17 @@ class MixTable(BaseModel):
             "Do not include the header row — the renderer adds it."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_row_widths(self) -> "MixTable":
+        """Ensure every row has exactly 2 cells (Component / Amount)."""
+        for i, row in enumerate(self.rows):
+            if len(row.cells) != 2:
+                raise ValueError(
+                    f"MixTable row {i} has {len(row.cells)} cell(s); "
+                    f"expected 2 (Component / Amount)."
+                )
+        return self
 
 
 # ---------------------------------------------------------------------------

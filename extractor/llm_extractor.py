@@ -263,6 +263,26 @@ def _post_process_payload(payload: dict) -> dict:
             if cells and re.match(r"^(total|incubate)", cells[0], re.IGNORECASE):
                 row["bold"] = True
 
+    # Normalise table row widths: pad short rows with "—", trim long rows.
+    # Mitigates burning LLM retries on minor cell-count mismatches which really don't matter.
+    for mt in payload.get("materials", []):
+        for row in mt.get("rows", []):
+            cells = row.get("cells", [])
+            if len(cells) < 3:
+                cells.extend(["\u2014"] * (3 - len(cells)))
+            elif len(cells) > 3:
+                cells[:] = cells[:3]
+            row["cells"] = cells
+
+    for mt in payload.get("mix_tables", []):
+        for row in mt.get("rows", []):
+            cells = row.get("cells", [])
+            if len(cells) < 2:
+                cells.extend(["\u2014"] * (2 - len(cells)))
+            elif len(cells) > 2:
+                cells[:] = cells[:2]
+            row["cells"] = cells
+
     return payload
 
 
