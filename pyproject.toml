@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
-    { name = "Alon Douek", email = "" },
+    { name = "Alon Douek", email = "alon.douek@monash.edu" },
 ]
 keywords = ["biology", "protocol", "docx", "laboratory", "formatting"]
 
@@ -30,6 +30,11 @@ dev = [
 ]
 
 [project.scripts]
+# NOTE: "main:app" relies on hatch packaging "." as a top-level source root.
+# This works with `pip install -e .` (recommended) and non-editable installs
+# built by hatch. If the entry point fails to resolve in another build backend
+# or environment, use `python -m protocol_formatter` as a fallback.
+# See DEVNOTE-021 and DEVNOTE-023 (top-level name collision risk).
 protocol-formatter = "main:app"
 
 [tool.hatch.build.targets.wheel]
@@ -46,6 +51,7 @@ packages = [
 "renderer/templates/lib.js"        = "renderer/templates/lib.js"
 "renderer/templates/lib_comp.js"   = "renderer/templates/lib_comp.js"
 "renderer/templates/render.js"     = "renderer/templates/render.js"
+"__main__.py"                      = "__main__.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

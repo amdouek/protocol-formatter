@@ -97,6 +97,13 @@ source .venv/bin/activate
 
 pip install -e ".[dev]"
 ```
+The editable install (`-e`) is the recommended installation method. After install, the `protocol-formatter` command will be available in your terminal.
+
+However, if the console script fails to resolve in your environment, use the following fallback method:
+
+```bash
+python -m protocol_formatter
+```
 
 **4. Install Ollama and pull the LLM**
 Download Ollama from [ollama.com](ollama.com), then:
