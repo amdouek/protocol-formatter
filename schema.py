@@ -23,8 +23,8 @@ Section types
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional, Union
-from pydantic import BaseModel, Field, model_validator
+from typing import Annotated, Literal, Optional, Union
+from pydantic import BaseModel, Discriminator, Field, Tag, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +221,17 @@ class StoppingPoint(BaseModel):
 
 
 # Step is the discriminated union used throughout the procedure tree.
-Step = Union[ActionStep, StoppingPoint]
+# The explicit Discriminator on step_type gives Pydantic a direct dispatch
+# path, producing targeted validation errors (e.g. "step_type 'action'
+# received but 'text' field missing") rather than the generic "none of the
+# union variants matched" message that untagged unions produce.
+Step = Annotated[
+    Union[
+        Annotated[ActionStep, Tag(StepType.ACTION)],
+        Annotated[StoppingPoint, Tag(StepType.STOPPING_POINT)],
+    ],
+    Discriminator("step_type"),
+]
 
 # Rebuild models that reference Step forward reference.
 ActionStep.model_rebuild()
