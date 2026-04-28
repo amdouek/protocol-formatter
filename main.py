@@ -278,32 +278,71 @@ def _set_nested(data: dict, path: str, value) -> None:
 
     Raises
     ------
-    KeyError / IndexError / ValueError
-        If the path is invalid or the index is out of range.
+    ValueError
+        If the path is invalid, a key is missing, or an index is out of range.
     """
     import re
     # Split on dots and bracket indices: "procedure[0].heading" → ["procedure", 0, "heading"]
-    parts = []
-    for token in re.split(r"\.(?![^\[]*\])", path):
-        m = re.match(r"^(\w+)\[(\d+)\]$", token)
+    parts: list[str | int] = []
+    for token in re.split(r"\.(?![^$$]*$$)", path):
+        m = re.match(r"^(\w+)$$(\d+)$$$", token)
         if m:
             parts.append(m.group(1))
             parts.append(int(m.group(2)))
         else:
             parts.append(token)
 
-    obj = data
-    for part in parts[:-1]:
-        if isinstance(part, int):
-            obj = obj[part]
-        else:
-            obj = obj[part]
+    if not parts:
+        raise ValueError(f"Empty field path: '{path}'")
 
+    # Traverse to the parent of the target field
+    obj = data
+    traversed: list[str] = []
+    for part in parts[:-1]:
+        try:
+            if isinstance(part, int):
+                obj = obj[part]
+                traversed.append(f"[{part}]")
+            else:
+                obj = obj[part]
+                traversed.append(f".{part}" if traversed else part)
+        except KeyError:
+            location = "".join(traversed)
+            raise ValueError(
+                f"Key '{part}' not found at '{location or '(root)'}'. "
+                f"Check the field path: '{path}'"
+            ) from None
+        except IndexError:
+            location = "".join(traversed)
+            raise ValueError(
+                f"Index [{part}] is out of range at '{location or '(root)'}'. "
+                f"Check the field path: '{path}'"
+            ) from None
+        except TypeError:
+            location = "".join(traversed)
+            raise ValueError(
+                f"Cannot traverse into '{location or '(root)'}' with key '{part}'. "
+                f"Expected a dict or list, got {type(obj).__name__}."
+            ) from None
+
+    # Set the final value
     last = parts[-1]
-    if isinstance(last, int):
-        obj[last] = value
-    else:
-        obj[last] = value
+    location = "".join(traversed)
+    try:
+        if isinstance(last, int):
+            obj[last] = value
+        else:
+            obj[last] = value
+    except IndexError:
+        raise ValueError(
+            f"Index [{last}] is out of range at '{location or '(root)'}'. "
+            f"Check the field path: '{path}'"
+        ) from None
+    except TypeError:
+        raise ValueError(
+            f"Cannot set '{last}' at '{location or '(root)'}'. "
+            f"Expected a dict or list, got {type(obj).__name__}."
+        ) from None
 
 
 # ---------------------------------------------------------------------------
