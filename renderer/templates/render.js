@@ -256,10 +256,16 @@ async function main() {
     fatal("Output write error", err.message);
   }
 
-  // Report success
-  process.stdout.write(
-    JSON.stringify({ output: resolvedPath }) + "\n"
-  );
+  // Report success.
+  // In binary stdout mode (no output_path), the docx buffer has already been
+  // written to stdout. Route the success metadata to stderr to avoid
+  // corrupting the binary stream.
+  const successJson = JSON.stringify({ output: resolvedPath }) + "\n";
+  if (resolvedPath === "(stdout)") {
+    process.stderr.write(successJson);
+  } else {
+    process.stdout.write(successJson);
+  }
   process.exit(0);
 }
 

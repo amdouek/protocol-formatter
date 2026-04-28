@@ -168,9 +168,11 @@ def render_protocol(
             "Consider increasing ollama.request_timeout_seconds in style_guide.yaml."
         ) from None
 
-    # Parse stdout (expected: {"output": "<path>"})
+    # Parse response. Normally on stdout, but binary mode routes it to stderr
+    # to avoid corrupting the docx byte stream. See DEVNOTE-036.
     stdout = result.stdout.strip()
     stderr = result.stderr.strip()
+    response_str = stdout or stderr
 
     if result.returncode != 0:
         # Attempt to parse structured error from stderr
@@ -191,13 +193,13 @@ def render_protocol(
             f"{error_msg}\n\nDetail:\n{detail}"
         )
 
-    # Verify output path from stdout
+    # Verify output path from response
     try:
-        response = json.loads(stdout)
+        response = json.loads(response_str)
         rendered_path = Path(response["output"])
     except (json.JSONDecodeError, KeyError, TypeError) as exc:
         raise RendererError(
-            f"Unexpected renderer stdout: {stdout!r}. "
+            f"Unexpected renderer output: {response_str!r}. "
             f"Expected JSON with 'output' key."
         ) from exc
 
