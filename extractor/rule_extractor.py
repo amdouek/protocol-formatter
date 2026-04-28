@@ -545,18 +545,12 @@ def _extract_materials(material_paras: list, all_tables) -> list:
     if not material_paras and not all_tables:
         return []
 
-    # Find H3 headings and the table positions that follow them
     result = []
-    current_heading = "Reagents"
-    pending_heading = None
 
-    # Build a set of table positions (table.position) within materials context
-    mat_table_positions = set()
-    para_positions = {id(p) for p in material_paras}
-
-    for para in material_paras:
-        if para.heading_level == 3:
-            pending_heading = para.raw_text
+    # Collect H3 headings in document order for table assignment
+    headings_seen = [
+        p.raw_text for p in material_paras if p.heading_level == 3
+    ]
 
     # Assign tables to headings by document order
     headings_seen = []

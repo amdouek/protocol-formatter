@@ -150,7 +150,7 @@ def render_protocol(
             capture_output=True,
             text=True,
             encoding="utf-8",
-            timeout=cfg.get("ollama", {}).get("request_timeout_seconds", 120),
+            timeout=cfg.get("paths", {}).get("renderer_timeout_seconds", 30),
         )
     except FileNotFoundError:
         raise RendererError(

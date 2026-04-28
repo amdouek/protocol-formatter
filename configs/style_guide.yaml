@@ -40,6 +40,10 @@ paths:
   # Relative paths are resolved from the working directory at runtime.
   # Use an absolute path for predictable behaviour across invocations.
   output_dir: "output"
+  
+  # Timeout in seconds for the Node.js renderer subprocess.
+  # Rendering is fast (typically <5s); this is a safety net for hangs.
+  renderer_timeout_seconds: 30
 
 
 # ===========================================================================
