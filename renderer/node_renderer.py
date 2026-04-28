@@ -248,8 +248,11 @@ def check_docx_package_available(node_exe: Optional[str] = None) -> tuple[bool, 
     """
     Check whether the ``docx`` npm package is available to the renderer.
 
-    Runs a minimal Node.js require check. Returns (True, version) or
-    (False, error_message).
+    Runs a minimal Node.js require check from the renderer/templates/
+    directory first (where render.js will run), then falls back to the
+    package root (where npm install is typically run). This handles both
+    local node_modules in templates/ and project-root node_modules that
+    Node resolves via parent-directory walking.
 
     Parameters
     ----------
@@ -267,35 +270,61 @@ def check_docx_package_available(node_exe: Optional[str] = None) -> tuple[bool, 
         except Exception as exc:
             return False, str(exc)
 
+    # Use require.resolve to find the package wherever Node's module
+    # resolution locates it, then read its version from package.json
+    # via the resolved path rather than a hardcoded relative path.
     check_script = (
         "try { "
-        "require('docx'); "
-        "const pkg = require('./node_modules/docx/package.json'); "
-        "process.stdout.write(pkg.version); "
+        "const p = require.resolve('docx'); "
+        "const fs = require('fs'); "
+        "const path = require('path'); "
+        "let dir = path.dirname(p); "
+        "while (dir !== path.dirname(dir)) { "
+        "  const pkg = path.join(dir, 'package.json'); "
+        "  if (fs.existsSync(pkg)) { "
+        "    const v = JSON.parse(fs.readFileSync(pkg, 'utf8')).version; "
+        "    if (v) { process.stdout.write(v); process.exit(0); } "
+        "  } "
+        "  dir = path.dirname(dir); "
+        "} "
+        "process.stdout.write('installed'); "
         "process.exit(0); "
         "} catch(e) { "
         "process.stderr.write(e.message); "
         "process.exit(1); "
         "}"
     )
-    try:
-        result = subprocess.run(
-            [node_exe, "-e", check_script],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            cwd=str(Path(__file__).resolve().parent / "templates"),
-        )
-        if result.returncode == 0:
-            return True, result.stdout.strip()
-        return False, (
-            "docx npm package not found. "
-            "Install it with: npm install -g docx\n" + result.stderr.strip()
-        )
-    except FileNotFoundError:
-        return False, f"Node.js executable not found: '{node_exe}'"
-    except subprocess.TimeoutExpired:
-        return False, "docx package check timed out."
+
+    # Try from the templates directory (where render.js runs), matching
+    # the actual resolution context at render time.
+    templates_dir = _PACKAGE_ROOT / "renderer" / "templates"
+    search_dirs = [templates_dir, _PACKAGE_ROOT]
+
+    for cwd in search_dirs:
+        if not cwd.exists():
+            continue
+        try:
+            result = subprocess.run(
+                [node_exe, "-e", check_script],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                cwd=str(cwd),
+            )
+            if result.returncode == 0:
+                return True, result.stdout.strip()
+        except FileNotFoundError:
+            return False, f"Node.js executable not found: '{node_exe}'"
+        except subprocess.TimeoutExpired:
+            return False, "docx package check timed out."
+
+    # Both search directories failed
+    last_stderr = result.stderr.strip() if result else ""
+    return False, (
+        "docx npm package not found. "
+        "Run 'npm install docx' in the project root or in renderer/templates/.\n"
+        + last_stderr
+    )
 
 
 # ---------------------------------------------------------------------------
