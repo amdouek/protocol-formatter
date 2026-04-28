@@ -89,6 +89,24 @@ def _configure_logging(cfg: dict) -> None:
         colorize=True,
     )
 
+def _validate_output_dir(explicit: Optional[Path], cfg: dict) -> Path:
+    """
+    Resolve and validate the output directory path without creating it.
+
+    Catches obviously invalid paths (e.g. pointing at an existing file)
+    before the pipeline runs. Actual directory creation is deferred to
+    the renderer, which only creates it when output is ready to write.
+    """
+    output_dir = explicit or Path(cfg.get("paths", {}).get("output_dir", "output"))
+    output_dir = Path(output_dir).resolve()
+
+    if output_dir.exists() and not output_dir.is_dir():
+        console.print(
+            f"[red]Error:[/red] Output path exists but is not a directory: {output_dir}"
+        )
+        raise typer.Exit(code=1)
+
+    return output_dir
 
 # ---------------------------------------------------------------------------
 # Pipeline result type
@@ -467,7 +485,7 @@ def format(
         )
         raise typer.Exit(code=1)
 
-    output_dir = output or Path(cfg.get("paths", {}).get("output_dir", "output"))
+    output_dir = _validate_output_dir(output, cfg)
 
     detector = DuplicateDetector(
         case_sensitive=cfg.get("duplicate_detection", {}).get("case_sensitive", False)
@@ -570,7 +588,7 @@ def batch(
         )
     )
 
-    output_dir = output or Path(cfg.get("paths", {}).get("output_dir", "output"))
+    output_dir = _validate_output_dir(output, cfg)
     detector = DuplicateDetector(
         case_sensitive=cfg.get("duplicate_detection", {}).get("case_sensitive", False)
     )
