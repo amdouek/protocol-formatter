@@ -317,7 +317,7 @@ def _process_one(
     heuristic_only: bool,
     do_review: bool,
     cfg: dict,
-    detector: DuplicateDetector,
+    detector: Optional[DuplicateDetector] = None,
 ) -> PipelineResult:
     """
     Run the full pipeline for a single source document.
@@ -335,7 +335,7 @@ def _process_one(
     from renderer.node_renderer import render_protocol, RendererError
 
     # ── Duplicate detection ──────────────────────────────────────────────────
-    if detector.check(source_path):
+    if detector is not None and detector.check(source_path):
         console.print(
             f"[yellow]⚠  Duplicate:[/yellow] '{source_path.name}' has already been "
             "processed in this batch. Skipping."
@@ -486,10 +486,6 @@ def format(
 
     output_dir = _validate_output_dir(output, cfg)
 
-    detector = DuplicateDetector(
-        case_sensitive=cfg.get("duplicate_detection", {}).get("case_sensitive", False)
-    )
-
     result = _process_one(
         source_path=source.resolve(),
         output_dir=output_dir,
@@ -497,7 +493,7 @@ def format(
         heuristic_only=heuristic,
         do_review=review,
         cfg=cfg,
-        detector=detector,
+        detector=None,
     )
 
     if result.status != ResultStatus.SUCCESS:
