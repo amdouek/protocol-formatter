@@ -613,7 +613,7 @@ def _extract_mix_tables(mix_paras: list, all_tables) -> list:
 
     two_col_tables = [
         t for t in all_tables
-        if t.rows and 1 <= len(t.rows[0]) <= 3
+        if t.rows and len(t.rows[0]) == 2
     ]
 
     for i, table in enumerate(two_col_tables):
