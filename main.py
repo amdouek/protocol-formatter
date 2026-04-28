@@ -36,7 +36,10 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from schema import Protocol
 
 import typer
 from loguru import logger
@@ -46,8 +49,6 @@ from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 from rich.table import Table
 from rich import print as rprint
-
-from extractor import rule_extractor
 
 app = typer.Typer(
     name="protocol-formatter",
@@ -166,7 +167,7 @@ class DuplicateDetector:
 # Review step (human-in-the-loop)
 # ---------------------------------------------------------------------------
 
-def _run_review_step(protocol) -> object:
+def _run_review_step(protocol: Protocol) -> Protocol:
     """
     Present the extracted Protocol schema to the user for review and optional
     editing before rendering.
