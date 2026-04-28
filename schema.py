@@ -23,8 +23,10 @@ Section types
 from __future__ import annotations
 
 from enum import Enum
+
+import re
 from typing import Annotated, Literal, Optional, Union
-from pydantic import BaseModel, Discriminator, Field, Tag, model_validator
+from pydantic import BaseModel, Discriminator, Field, Tag, field_validator, model_validator
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +389,25 @@ class Protocol(BaseModel):
         default=None,
         description="Last-updated date in DD/MM/YYYY format.",
     )
+
+    @field_validator("date")
+    @classmethod
+    def validate_date_format(cls, v: Optional[str]) -> Optional[str]:
+        """Ensure date matches DD/MM/YYYY format when provided."""
+        if v is None:
+            return v
+        if not re.match(r"^\d{2}/\d{2}/\d{4}$", v):
+            raise ValueError(
+                f"Date must be in DD/MM/YYYY format, got '{v}'. "
+                "Use parser.utils.normalise_date() to convert other formats."
+            )
+        # Basic range check: day 01-31, month 01-12
+        day, month, year = int(v[:2]), int(v[3:5]), int(v[6:])
+        if not (1 <= month <= 12):
+            raise ValueError(f"Invalid month {month:02d} in date '{v}'.")
+        if not (1 <= day <= 31):
+            raise ValueError(f"Invalid day {day:02d} in date '{v}'.")
+        return v
 
     # --- Front matter ---
     overview: str = Field(

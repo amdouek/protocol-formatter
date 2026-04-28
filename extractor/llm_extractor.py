@@ -239,6 +239,13 @@ def _post_process_payload(payload: dict) -> dict:
     # Normalise section_type
     st = payload.get("section_type", "")
     payload["section_type"] = st.lower().strip() if st else "wet_lab"
+    
+    # Normalise date to DD/MM/YYYY if the LLM returned a different format
+    raw_date = payload.get("date")
+    if raw_date and not re.match(r"^\d{2}/\d{2}/\d{4}$", str(raw_date)):
+        from parser.utils import normalise_date
+        normalised = normalise_date(str(raw_date))
+        payload["date"] = normalised  # None if unrecognisable — validator accepts None
 
     # List defaults
     for key in ("materials", "mix_tables", "notes", "references"):
