@@ -121,7 +121,11 @@ def render_protocol(
     if output_filename is None:
         slug = _title_to_slug(protocol.title)
         version = (protocol.version or "1.0").replace(".", "_")
-        output_filename = f"{slug}_v{version}.docx"
+        # Prepend section number if available (e.g. "3.2-RNA-Extraction_v1_0.docx")
+        if protocol.section_number:
+            output_filename = f"{protocol.section_number}-{slug}_v{version}.docx"
+        else:
+            output_filename = f"{slug}_v{version}.docx"
 
     output_path = output_dir / output_filename
 
@@ -331,27 +335,63 @@ def check_docx_package_available(node_exe: Optional[str] = None) -> tuple[bool, 
 # Utility helpers
 # ---------------------------------------------------------------------------
 
-def _title_to_slug(title: str) -> str:          # DEVNOTE001: This is a placeholder - need to revise it to be more aesthetic. Make title case, sep words with hyphens, and prepend with a section-protocol prefix (e.g. 3.1-protocol). Need to ensure edge cases are handled (e.g. non-alphanumeric chars, multiple spaces/hyphens, very long titles). Also need to ensure it doesn't produce an empty slug for weird titles (e.g. "!!!" → "untitled").
+def _title_to_slug(title: str) -> str:
     """
-    Convert a protocol title to a filesystem-safe slug.
+    Convert a protocol title to a filesystem-safe, human-readable slug.
 
     Rules:
-        - Lowercase
-        - Spaces and hyphens → underscore
-        - Remove non-alphanumeric characters (except underscores)
-        - Truncate to 60 characters
+        - Title case with known acronyms preserved (RNA, PCR, etc.)
+        - Words separated by hyphens
+        - Non-alphanumeric characters removed (except hyphens)
+        - Truncated to 60 characters at a word boundary
+        - Falls back to "Untitled-Protocol" for degenerate input
 
     Examples
     --------
     >>> _title_to_slug("RNA Extraction from Zebrafish Tissue")
-    'rna_extraction_from_zebrafish_tissue'
+    'RNA-Extraction-from-Zebrafish-Tissue'
     >>> _title_to_slug("In Situ Hybridisation (ISH) — wholemount")
-    'in_situ_hybridisation_ish_wholemount'
+    'In-Situ-Hybridisation-ISH-Wholemount'
+    >>> _title_to_slug("!!!")
+    'Untitled-Protocol'
     """
     import re
-    slug = title.lower()
-    slug = re.sub(r"[\s\-\u2014\u2013]+", "_", slug)   # spaces/dashes → _
-    slug = re.sub(r"[^\w]", "", slug)                   # remove non-word chars
-    slug = re.sub(r"_+", "_", slug)                     # collapse multiple _
-    slug = slug.strip("_")
-    return slug[:60]
+
+    # Known acronyms that should stay fully uppercase
+    acronyms = {
+        "RNA", "DNA", "PCR", "RT", "FISH", "ISH", "FACS", "GFP", "RFP",
+        "YFP", "CFP", "MRNA", "GRNA", "SGRNA", "CRRNA", "SIRNA", "SHRNA",
+        "CHIP", "ATAC", "HCR", "SMFISH", "CRISPR", "LNP", "IHC", "IF",
+        "PBS", "BSA", "EDTA", "DMSO", "ETOH",
+    }
+
+    # Normalise whitespace and dashes to single spaces
+    slug = re.sub(r"[\s\-\u2014\u2013]+", " ", title)
+    # Remove non-alphanumeric characters (except spaces)
+    slug = re.sub(r"[^\w\s]", "", slug)
+    # Collapse multiple spaces
+    slug = re.sub(r"\s+", " ", slug).strip()
+
+    if not slug:
+        return "Untitled-Protocol"
+
+    # Apply title case, preserving acronyms
+    words = []
+    for word in slug.split():
+        if word.upper() in acronyms:
+            words.append(word.upper())
+        else:
+            words.append(word.capitalize())
+
+    slug = "-".join(words)
+
+    # Truncate at a word boundary
+    if len(slug) > 60:
+        truncated = slug[:60]
+        last_hyphen = truncated.rfind("-")
+        if last_hyphen > 20:
+            slug = truncated[:last_hyphen]
+        else:
+            slug = truncated
+
+    return slug
