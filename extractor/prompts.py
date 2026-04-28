@@ -41,14 +41,11 @@ and a warning is logged if it exceeds 24k tokens (leaving ~8k for completion).
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
-import yaml
 from loguru import logger
 
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config
 
 
 # ---------------------------------------------------------------------------
@@ -173,14 +170,12 @@ Set "code" and "code_language" to null for wet_lab protocols.
 # ---------------------------------------------------------------------------
 
 def _load_style_guide() -> dict:
-    """Load style_guide.yaml and return the parsed dict."""
-    if not _STYLE_GUIDE_PATH.exists():
-        logger.warning(
-            "style_guide.yaml not found at {}. Using empty config.", _STYLE_GUIDE_PATH
-        )
+    """Thin wrapper preserving the local function name for call sites."""
+    try:
+        return get_config()
+    except FileNotFoundError:
+        logger.warning("style_guide.yaml not found. Using empty config.")
         return {}
-    with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
 
 
 def build_style_guide_context(cfg: Optional[dict] = None) -> str:

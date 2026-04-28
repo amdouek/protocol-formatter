@@ -39,7 +39,6 @@ from pathlib import Path
 from typing import Annotated, Optional
 
 import typer
-import yaml
 from loguru import logger
 from rich.console import Console
 from rich.panel import Panel
@@ -59,8 +58,9 @@ app = typer.Typer(
 
 console = Console()
 
-_PACKAGE_ROOT = Path(__file__).resolve().parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config, PACKAGE_ROOT
+
+_PACKAGE_ROOT = PACKAGE_ROOT
 
 
 # ---------------------------------------------------------------------------
@@ -68,14 +68,12 @@ _STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
 # ---------------------------------------------------------------------------
 
 def _load_cfg() -> dict:
-    if not _STYLE_GUIDE_PATH.exists():
-        console.print(
-            f"[red]Error:[/red] style_guide.yaml not found at {_STYLE_GUIDE_PATH}.\n"
-            "Ensure you are running from the protocol_formatter package root."
-        )
+    """Load config via the centralised config module, with CLI-friendly error."""
+    try:
+        return get_config()
+    except FileNotFoundError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
         raise typer.Exit(code=1)
-    with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
 
 
 def _configure_logging(cfg: dict) -> None:

@@ -27,14 +27,11 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-import yaml
 from loguru import logger
 
 from .docx_reader import ParsedDocument, read_docx
 
-# Resolve config path
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config
 
 
 # ---------------------------------------------------------------------------
@@ -49,8 +46,7 @@ def _get_pandoc_executable() -> str:
     falls back to "pandoc" (assumes it is on the system PATH).
     """
     try:
-        with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-            cfg = yaml.safe_load(fh)
+        cfg = get_config()
         return cfg.get("paths", {}).get("pandoc_executable", "pandoc")
     except Exception:
         return "pandoc"

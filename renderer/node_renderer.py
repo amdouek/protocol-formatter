@@ -30,23 +30,16 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-import yaml
 from loguru import logger
 
-# Resolve the package root (two levels up from this file):
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config, PACKAGE_ROOT
+
+_PACKAGE_ROOT = PACKAGE_ROOT
 
 
 def _load_style_guide() -> dict:
-    """Load and return the style_guide.yaml configuration dict."""
-    if not _STYLE_GUIDE_PATH.exists():
-        raise FileNotFoundError(
-            f"style_guide.yaml not found at {_STYLE_GUIDE_PATH}. "
-            "Ensure the configs/ directory is present in the package root."
-        )
-    with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh)
+    """Thin wrapper preserving the local function name for call sites."""
+    return get_config()
 
 
 def _resolve_node_executable(cfg: dict) -> str:

@@ -36,11 +36,9 @@ import re
 from pathlib import Path
 from typing import Optional
 
-import yaml
 from loguru import logger
 
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config
 
 # Known acronyms that should remain fully uppercase in titles
 _ACRONYMS = frozenset({
@@ -77,10 +75,11 @@ def _title_case(text: str) -> str:
     return " ".join(result)
 
 def _load_cfg() -> dict:
-    if not _STYLE_GUIDE_PATH.exists():
+    """Thin wrapper for backward-compatible internal calls."""
+    try:
+        return get_config()
+    except FileNotFoundError:
         return {}
-    with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
 
 
 # ---------------------------------------------------------------------------

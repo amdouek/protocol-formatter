@@ -30,31 +30,20 @@ from __future__ import annotations
 import json
 import re
 import time
-from pathlib import Path
 from typing import Optional
 
 import urllib.request
 import urllib.error
 from loguru import logger
 
-import yaml
 from pydantic import ValidationError
 
-_PACKAGE_ROOT = Path(__file__).resolve().parent.parent
-_STYLE_GUIDE_PATH = _PACKAGE_ROOT / "configs" / "style_guide.yaml"
+from config import get_config
 
-
-# ---------------------------------------------------------------------------
-# Config loading
-# ---------------------------------------------------------------------------
 
 def _load_cfg() -> dict:
-    if not _STYLE_GUIDE_PATH.exists():
-        raise FileNotFoundError(
-            f"style_guide.yaml not found at {_STYLE_GUIDE_PATH}"
-        )
-    with _STYLE_GUIDE_PATH.open("r", encoding="utf-8") as fh:
-        return yaml.safe_load(fh) or {}
+    """Thin wrapper for backward-compatible internal calls."""
+    return get_config()
 
 
 # ---------------------------------------------------------------------------
