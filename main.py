@@ -432,8 +432,8 @@ def _process_one(
 # Commands
 # ---------------------------------------------------------------------------
 
-@app.command()
-def format(
+@app.command("format")
+def format_protocol(
     source: Annotated[
         Path,
         typer.Argument(help="Path to the source .docx or .doc protocol file."),
