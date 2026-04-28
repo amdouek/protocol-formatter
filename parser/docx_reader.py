@@ -160,6 +160,48 @@ class ParsedDocument:
     full_text: str = ""
     source_path: Path = field(default_factory=Path)
 
+# ---------------------------------------------------------------------------
+# Inheritance resolution helpers
+# ---------------------------------------------------------------------------
+
+def _resolve_bold(run, para: DocxParagraph) -> bool:
+    """
+    Resolve the effective bold state of a run, falling back through the
+    inheritance chain: run rPr → run style → paragraph style → False.
+
+    python-docx's run.bold returns None when the property is inherited
+    rather than explicitly set. bool(None) is False, which silently drops
+    style-inherited bold. This function resolves the full chain.
+    """
+    # Explicit run-level setting takes priority
+    if run.bold is not None:
+        return run.bold
+
+    # Check the run's own character style (if any)
+    if run.style and run.style.font and run.style.font.bold is not None:
+        return run.style.font.bold  # type: ignore[return-value]
+
+    # Fall back to the paragraph style's font properties
+    if para.style and para.style.font and para.style.font.bold is not None:
+        return para.style.font.bold  # type: ignore[return-value]
+
+    return False
+
+
+def _resolve_italic(run, para: DocxParagraph) -> bool:
+    """
+    Resolve the effective italic state of a run, mirroring _resolve_bold.
+    """
+    if run.italic is not None:
+        return run.italic
+
+    if run.style and run.style.font and run.style.font.italic is not None:
+        return run.style.font.italic  # type: ignore[return-value]
+
+    if para.style and para.style.font and para.style.font.italic is not None:
+        return para.style.font.italic  # type: ignore[return-value]
+
+    return False
 
 # ---------------------------------------------------------------------------
 # Run extraction
@@ -168,10 +210,13 @@ class ParsedDocument:
 def _extract_runs(para: DocxParagraph) -> list[ParsedRun]:
     """
     Extract text runs from a python-docx Paragraph, resolving bold and italic
-    from both run-level and paragraph-level run properties (rPr/pPr).
+    through the full style inheritance chain: run rPr → character style →
+    paragraph style.
 
-    python-docx resolves style inheritance automatically via run.bold and
-    run.italic; these can be None (inherit), True, or False.
+    python-docx's run.bold and run.italic return None when the property is
+    inherited rather than explicitly set. Since bool(None) is False, naive
+    conversion silently drops style-inherited formatting. The _resolve_bold
+    and _resolve_italic helpers walk the chain to the effective value.
 
     Parameters
     ----------
@@ -186,9 +231,8 @@ def _extract_runs(para: DocxParagraph) -> list[ParsedRun]:
         text = run.text
         if not text:
             continue
-        # run.bold / run.italic: True, False, or None (inherit from style)
-        bold = bool(run.bold)
-        italic = bool(run.italic)
+        bold = _resolve_bold(run, para)
+        italic = _resolve_italic(run, para)
         parsed_runs.append(ParsedRun(text=text, bold=bold, italic=italic))
     return parsed_runs
 
