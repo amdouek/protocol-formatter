@@ -22,6 +22,7 @@
 "use strict";
 
 const {
+  Document,
   Paragraph,
   TextRun,
   Table,
@@ -383,10 +384,6 @@ function parseCompInline(text) {
  * @returns {Document}      - docx Document ready for Packer.toBuffer().
  */
 function buildComputationalDocument(protocol) {
-  const {
-    Document,
-  } = require("docx");
-
   // Abbreviated title for footer (truncate at 40 chars)
   const abbrevTitle =
     protocol.title.length > 40
