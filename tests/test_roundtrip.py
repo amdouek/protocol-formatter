@@ -656,6 +656,46 @@ class TestHeuristicExtractor:
         # Title should be derived from filename
         assert "cool" in protocol.title.lower() or protocol.title
 
+# ===========================================================================
+# 4B. Callout detection tests
+# ===========================================================================
+
+class TestCalloutDetection:
+    """Unit tests for parser/utils.py callout detection helpers."""
+
+    def test_crucial_prefix_classified_as_critical(self):
+        from parser.utils import detect_callout_type
+        assert detect_callout_type("CRUCIAL: avoid contamination.") == "critical"
+
+    def test_crucial_prefix_stripped_from_text(self):
+        from parser.utils import strip_callout_prefix
+        assert strip_callout_prefix("CRUCIAL: avoid contamination.") == \
+            "avoid contamination."
+
+    def test_crucial_prefix_case_insensitive(self):
+        from parser.utils import detect_callout_type, strip_callout_prefix
+        assert detect_callout_type("Crucial - keep cold.") == "critical"
+        assert strip_callout_prefix("crucial: keep cold.") == "keep cold."
+
+    def test_crucial_mid_sentence_still_promotes(self):
+        """Existing keyword-scan behaviour preserved for mid-sentence usage."""
+        from parser.utils import detect_callout_type
+        assert detect_callout_type("It is crucial to work quickly.") == "critical"
+
+    def test_critical_prefix_unchanged(self):
+        """Pre-existing CRITICAL prefix behaviour must not regress."""
+        from parser.utils import detect_callout_type, strip_callout_prefix
+        assert detect_callout_type("CRITICAL: this step is essential.") == "critical"
+        assert strip_callout_prefix("CRITICAL: this step is essential.") == \
+            "this step is essential."
+
+    def test_important_prefix_maps_to_caution(self):
+        """Pre-existing IMPORTANT/WARNING/CAUTION → caution mapping unchanged."""
+        from parser.utils import detect_callout_type
+        assert detect_callout_type("IMPORTANT: wear gloves.") == "caution"
+        assert detect_callout_type("WARNING: toxic.") == "caution"
+        assert detect_callout_type("Caution: hot surface.") == "caution"
+
 
 # ===========================================================================
 # 5. Prompts tests

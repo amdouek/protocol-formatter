@@ -280,7 +280,7 @@ _CALLOUT_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 # Explicit prefix patterns that strongly indicate a callout label
 _CALLOUT_PREFIX = re.compile(
-    r"^(?P<label>IMPORTANT|WARNING|CAUTION|NOTE|TIP|CRITICAL)\s*[:\-–—]\s*",
+    r"^(?P<label>IMPORTANT|WARNING|CAUTION|NOTE|TIP|CRITICAL|CRUCIAL)\s*[:\-–—]\s*",
     re.IGNORECASE,
 )
 
@@ -323,7 +323,7 @@ def detect_callout_type(text: str) -> Optional[str]:
         label = m.group("label").lower()
         if label in ("important", "warning", "caution"):
             return "caution"
-        if label == "critical":
+        if label in ("critical", "crucial"):
             return "critical"
         if label == "tip":
             return "tip"
