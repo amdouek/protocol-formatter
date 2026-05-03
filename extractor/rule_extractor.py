@@ -275,9 +275,17 @@ def extract_protocol_heuristic(
     ).strip()
     if not overview_text:
         # Absolute fallback: first non-heading, non-list, non-stopping-point
-        # paragraph in the document that reads like a description (not a
-        # terminal instruction like "store at -80C")
-        for p in paras:
+        # paragraph in the document that reads like a description.
+        # DEVNOTE-038: restrict the search to paragraphs that appear BEFORE
+        # the first list item / numbered step. Without this bound, terminal
+        # instructions at the end of the document (e.g. "store at -80 °C")
+        # can be captured as the overview when no explicit Overview section
+        # is present.
+        first_step_idx = next(
+            (i for i, p in enumerate(paras) if p.is_list_item),
+            len(paras),
+        )
+        for p in paras[:first_step_idx]:
             if (p.heading_level == 0
                     and not p.is_list_item
                     and not is_stopping_point(p.raw_text)

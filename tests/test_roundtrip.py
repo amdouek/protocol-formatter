@@ -655,6 +655,55 @@ class TestHeuristicExtractor:
         protocol = extract_protocol_heuristic(doc)
         # Title should be derived from filename
         assert "cool" in protocol.title.lower() or protocol.title
+        
+    def test_overview_excludes_terminal_prose(self, tmp_path):
+        """DEVNOTE-038: terminal prose after stepped content must not become overview."""
+        from docx import Document as DocxDocument
+        from parser.docx_reader import read_docx
+        from extractor.rule_extractor import extract_protocol_heuristic
+
+        d = DocxDocument()
+        # Flat document with no leading prose, no explicit Overview H1
+        d.add_heading("Procedure", level=1)
+        d.add_paragraph("Add 5 uL buffer to the tube.", style="List Number")
+        d.add_paragraph("Centrifuge at 12,000 x g for 5 min.", style="List Number")
+        # Terminal instruction that the pre-fix fallback would have captured
+        d.add_paragraph(
+            "Either proceed immediately with downstream applications, "
+            "or aliquot and store at -80 C for long-term preservation."
+        )
+        path = tmp_path / "terminal_prose.docx"
+        d.save(str(path))
+
+        doc = read_docx(path)
+        protocol = extract_protocol_heuristic(doc)
+
+        assert "store at -80" not in protocol.overview
+        assert "proceed immediately" not in protocol.overview
+
+    def test_overview_fallback_uses_pre_step_prose(self, tmp_path):
+        """Pre-step prose remains a valid fallback overview candidate."""
+        from docx import Document as DocxDocument
+        from parser.docx_reader import read_docx
+        from extractor.rule_extractor import extract_protocol_heuristic
+
+        d = DocxDocument()
+        # Flat document: leading descriptive prose, then steps, then terminal prose
+        d.add_paragraph(
+            "This protocol describes total RNA extraction from zebrafish tissue "
+            "using TRIzol reagent over approximately two to three hours."
+        )
+        d.add_heading("Procedure", level=1)
+        d.add_paragraph("Add 1 mL TRIzol.", style="List Number")
+        d.add_paragraph("Either proceed immediately or store at -80 C.")
+        path = tmp_path / "pre_step_prose.docx"
+        d.save(str(path))
+
+        doc = read_docx(path)
+        protocol = extract_protocol_heuristic(doc)
+
+        assert "TRIzol" in protocol.overview
+        assert "store at -80" not in protocol.overview
 
 # ===========================================================================
 # 4B. Callout detection tests
