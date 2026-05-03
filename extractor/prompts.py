@@ -139,7 +139,19 @@ MixTable = {
 - "materials" and "mix_tables" MUST be [] for computational protocols.
 - "prerequisites" MUST be null for wet_lab protocols.
 - Nested steps use "children": []. There is no depth limit.
-- Stopping points (pause point, safe to store, etc.) use step_type "stopping_point".
+- Stopping points: use step_type "stopping_point" ONLY for points where the \
+  operator can walk away from the bench and safely resume the protocol later \
+  (minutes to days). The discriminating signal is whether the protocol can be \
+  paused indefinitely at that point, NOT whether the step mentions a time, \
+  temperature, or incubation. Examples:
+    * "Store overnight at 4 °C." → stopping_point
+    * "Samples can be stored at -80 °C for up to 6 months." → stopping_point
+    * "Incubate at room temperature for 5 min." → action (NOT stopping_point)
+    * "Centrifuge at 12,000 × g for 15 min at 4 °C." → action
+    * "Heat to 95 °C for 3 min." → action
+    * "Pause point — samples may be left on ice for up to 1 hour." → stopping_point
+  When in doubt, default to step_type "action". Stopping points are rare; \
+  most protocols contain zero or one.
 - Footnotes from the source document belong in "notes", not inline in step text.
 - Cross-references to other protocols use the format "Section X.Y".
 - "author" defaults to "ARMI" if the source does not name a specific author.
@@ -220,8 +232,15 @@ def build_style_guide_context(cfg: Optional[dict] = None) -> str:
         sp_kws = sp.get("keywords", [])
         kw_str = ", ".join(f'"{k}"' for k in sp_kws[:6])
         lines.append(
-            f'### Stopping points\n'
-            f'Use step_type "stopping_point" when text contains: {kw_str}\n'
+            '### Stopping points\n'
+            'A stopping point is a step where the operator can walk away from\n'
+            'the bench and safely resume the protocol later (minutes to days of\n'
+            'unattended pause). Storage steps, overnight incubations, and explicit\n'
+            '"pause point" markers qualify. Short incubations, centrifugations,\n'
+            'and timed reactions DO NOT qualify, even if they mention a duration\n'
+            f'or temperature. Common stopping-point phrases: {kw_str}.\n'
+            'Phrases alone are not sufficient — the operator must be able to\n'
+            'walk away. When in doubt, classify as step_type "action".\n'
         )
 
     # Section registry

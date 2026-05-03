@@ -808,6 +808,36 @@ class TestPrompts:
         from extractor.prompts import check_token_budget, SYSTEM_PROMPT
         _, over = check_token_budget(SYSTEM_PROMPT, "short protocol text", 4096)
         assert over is False
+        
+    def test_system_prompt_stopping_point_negative_example(self):
+        """DEVNOTE-039: system prompt must contain at least one negative example
+        distinguishing short incubations from stopping points."""
+        from extractor.prompts import SYSTEM_PROMPT
+        # The exact wording is editorial; we assert the discriminating concept
+        # appears alongside the action/stopping_point distinction.
+        assert "walk away" in SYSTEM_PROMPT.lower()
+        assert "Incubate" in SYSTEM_PROMPT or "incubate" in SYSTEM_PROMPT
+        # Negative-example marker: the prompt must explicitly assert that at
+        # least one short-duration incubation is NOT a stopping point.
+        assert "NOT stopping_point" in SYSTEM_PROMPT or \
+            "NOT a stopping" in SYSTEM_PROMPT.lower() or \
+            "(NOT stopping_point)" in SYSTEM_PROMPT
+
+    def test_style_guide_context_stopping_point_semantic_framing(self, cfg):
+        """DEVNOTE-039: style guide block must frame stopping points
+        semantically, not as a bare keyword list."""
+        from extractor.prompts import build_style_guide_context
+        ctx = build_style_guide_context(cfg)
+        assert "walk away" in ctx.lower()
+        assert "when in doubt" in ctx.lower()
+
+    def test_token_budget_unchanged_for_short_doc_post_039(self):
+        """The expanded prompt must not flip a short document into the
+        over-budget warning state."""
+        from extractor.prompts import check_token_budget, SYSTEM_PROMPT, build_user_message
+        user_msg = build_user_message("Short protocol with two steps.", cfg={})
+        _, over = check_token_budget(SYSTEM_PROMPT, user_msg, 4096)
+        assert over is False
 
 
 # ===========================================================================
