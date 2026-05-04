@@ -240,7 +240,8 @@ def build_style_guide_context(cfg: Optional[dict] = None) -> str:
             'and timed reactions DO NOT qualify, even if they mention a duration\n'
             f'or temperature. Common stopping-point phrases: {kw_str}.\n'
             'Phrases alone are not sufficient — the operator must be able to\n'
-            'walk away. When in doubt, classify as step_type "action".\n'
+            'walk away for an extended period without needing to intervene further.\n'
+            'When in doubt, classify as step_type "action".\n'
         )
 
     # Section registry
