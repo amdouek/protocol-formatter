@@ -863,14 +863,44 @@ function renderProcedure(procedureSections, fontOpts = {}) {
       );
     }
 
-    // Callouts at top of section
-    for (const callout of section.callouts || []) {
+    // DEVNOTE-040: partition callouts by after_step.
+    // Section-top callouts (after_step == null) render before the first step.
+    // Inline callouts (after_step == N) render immediately after step N.
+    const allCallouts = section.callouts || [];
+    const topCallouts = [];
+    const inlineByStep = new Map();
+    for (const c of allCallouts) {
+      if (c.after_step === null || c.after_step === undefined) {
+        topCallouts.push(c);
+      } else {
+        if (!inlineByStep.has(c.after_step)) inlineByStep.set(c.after_step, []);
+        inlineByStep.get(c.after_step).push(c);
+      }
+    }
+
+    // Top-of-section callouts
+    for (const callout of topCallouts) {
       elements.push(calloutBox(callout, fontOpts));
       elements.push(spacer(60));
     }
 
-    // Steps
-    elements.push(...renderSteps(section.steps || [], 0, fontOpts));
+    // Steps with interleaved inline callouts.
+    // Each top-level step is rendered individually so we can append its
+    // associated callouts immediately after. The numbering reference
+    // STEP_L0 is shared across calls and produces continuous 1,2,3 numbering
+    // because docx counters are bound to the reference at document scope,
+    // not to the renderSteps() call site.
+    const steps = section.steps || [];
+    steps.forEach((step, i) => {
+      elements.push(...renderSteps([step], 0, fontOpts));
+      const stepCallouts = inlineByStep.get(i);
+      if (stepCallouts) {
+        for (const callout of stepCallouts) {
+          elements.push(calloutBox(callout, fontOpts));
+          elements.push(spacer(60));
+        }
+      }
+    });
     elements.push(spacer(80));
   }
 

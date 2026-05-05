@@ -398,6 +398,100 @@ class TestSchema:
         )
         assert mt.rows[1].bold is True
         assert mt.rows[0].bold is False
+        
+    def test_callout_after_step_default_is_none(self):
+        """After_step defaults to None for backward compatibility."""
+        from schema import Callout, CalloutType
+        c = Callout(callout_type=CalloutType.CAUTION, text="Wear gloves.")
+        assert c.after_step is None
+
+    def test_callout_after_step_accepts_valid_index(self):
+        """DEVNOTE-040: after_step accepts non-negative integer."""
+        from schema import (
+            Callout, CalloutType, ProcedureSection, ActionStep,
+        )
+        section = ProcedureSection(
+            heading="Test",
+            steps=[
+                ActionStep(text="Step 0."),
+                ActionStep(text="Step 1."),
+                ActionStep(text="Step 2."),
+            ],
+            callouts=[
+                Callout(callout_type=CalloutType.CRITICAL,
+                        text="Watch out here.", after_step=1),
+            ],
+        )
+        assert section.callouts[0].after_step == 1
+
+    def test_callout_after_step_rejects_negative(self):
+        """DEVNOTE-040: after_step must be >= 0 (field-level constraint)."""
+        from schema import Callout, CalloutType
+        with pytest.raises(Exception, match="after_step"):
+            Callout(callout_type=CalloutType.NOTE,
+                    text="Test.", after_step=-1)
+
+    def test_callout_after_step_rejects_out_of_range(self):
+        """DEVNOTE-040: after_step >= len(steps) is rejected by ProcedureSection."""
+        from schema import (
+            Callout, CalloutType, ProcedureSection, ActionStep,
+        )
+        with pytest.raises(Exception, match="after_step"):
+            ProcedureSection(
+                heading="Test",
+                steps=[ActionStep(text="Only step.")],
+                callouts=[
+                    Callout(callout_type=CalloutType.NOTE,
+                            text="Out of range.", after_step=5),
+                ],
+            )
+
+    def test_callout_mixed_top_and_inline(self):
+        """DEVNOTE-040: section accepts a mix of section-top and inline callouts."""
+        from schema import (
+            Callout, CalloutType, ProcedureSection, ActionStep,
+        )
+        section = ProcedureSection(
+            heading="Test",
+            steps=[ActionStep(text="A."), ActionStep(text="B.")],
+            callouts=[
+                Callout(callout_type=CalloutType.NOTE, text="General.",
+                        after_step=None),
+                Callout(callout_type=CalloutType.CRITICAL,
+                        text="Step-specific.", after_step=0),
+            ],
+        )
+        assert section.callouts[0].after_step is None
+        assert section.callouts[1].after_step == 0
+
+    def test_callout_json_roundtrip_preserves_after_step(self):
+        """DEVNOTE-040: after_step survives JSON serialise/deserialise."""
+        from schema import (
+            Protocol, SectionType, Callout, CalloutType,
+            ProcedureSection, ActionStep,
+        )
+        p = Protocol(
+            title="T",
+            section_type=SectionType.WET_LAB,
+            section_number="1",
+            section_name="TEST",
+            overview="o",
+            procedure=[
+                ProcedureSection(
+                    heading="H",
+                    steps=[ActionStep(text="A."), ActionStep(text="B.")],
+                    callouts=[
+                        Callout(callout_type=CalloutType.CRITICAL,
+                                text="Inline.", after_step=1),
+                        Callout(callout_type=CalloutType.NOTE,
+                                text="Top.", after_step=None),
+                    ],
+                ),
+            ],
+        )
+        restored = Protocol.model_validate_json(p.model_dump_json())
+        assert restored.procedure[0].callouts[0].after_step == 1
+        assert restored.procedure[0].callouts[1].after_step is None
 
 
 # ===========================================================================
@@ -581,6 +675,48 @@ class TestRenderer:
         assert _title_to_slug("In Situ Hybridisation (ISH) — wholemount") == \
                "in_situ_hybridisation_ish_wholemount"
         assert len(_title_to_slug("A" * 80)) <= 60
+        
+    @skip_no_renderer
+    def test_inline_callout_renders(self, tmp_path):
+        """Protocol with an inline callout renders to a valid .docx."""
+        from schema import (
+            Protocol, SectionType, ProcedureSection, ActionStep,
+            Callout, CalloutType,
+        )
+        from renderer.node_renderer import render_protocol
+
+        protocol = Protocol(
+            title="Inline Callout Test",
+            section_type=SectionType.WET_LAB,
+            section_number="1",
+            section_name="TEST",
+            overview="Inline callout placement test.",
+            procedure=[
+                ProcedureSection(
+                    heading="Steps",
+                    steps=[
+                        ActionStep(text="Add reagent."),
+                        ActionStep(text="Transfer aqueous phase."),
+                        ActionStep(text="Discard interphase."),
+                    ],
+                    callouts=[
+                        Callout(
+                            callout_type=CalloutType.CRITICAL,
+                            text="Avoid contaminating the upper aqueous phase.",
+                            after_step=1,
+                        ),
+                        Callout(
+                            callout_type=CalloutType.NOTE,
+                            text="Work on ice throughout.",
+                            after_step=None,
+                        ),
+                    ],
+                ),
+            ],
+        )
+        out = render_protocol(protocol, output_dir=tmp_path)
+        assert out.exists()
+        assert zipfile.is_zipfile(out)
 
 
 # ===========================================================================
@@ -838,6 +974,19 @@ class TestPrompts:
         user_msg = build_user_message("Short protocol with two steps.", cfg={})
         _, over = check_token_budget(SYSTEM_PROMPT, user_msg, 4096)
         assert over is False
+        
+    def test_system_prompt_mentions_after_step(self):
+        """System prompt must document the after_step field."""
+        from extractor.prompts import SYSTEM_PROMPT
+        assert "after_step" in SYSTEM_PROMPT
+
+    def test_system_prompt_after_step_positioning_rule(self):
+        """Prompt must explain when to use null vs an index."""
+        from extractor.prompts import SYSTEM_PROMPT
+        # The rule must describe both placements without prescribing exact wording.
+        assert "after_step" in SYSTEM_PROMPT
+        assert "0-based" in SYSTEM_PROMPT or "0 based" in SYSTEM_PROMPT
+        assert "null" in SYSTEM_PROMPT.lower()
 
 
 # ===========================================================================

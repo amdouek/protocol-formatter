@@ -66,10 +66,11 @@ class StepType(str, Enum):
 
 class Callout(BaseModel):
     """
-    An inline callout box rendered within a procedure section.
+    A callout box rendered within a procedure section.
 
-    Callouts may appear before or after any step within a ProcedureSection.
-    The renderer places them at the position indicated by their containing list.
+    Callouts may render either at the top of their containing ProcedureSection
+    (when ``after_step`` is None) or inline after a specific step (when
+    ``after_step`` is the 0-based index of the triggering step).
     """
     callout_type: CalloutType = Field(
         ...,
@@ -82,6 +83,17 @@ class Callout(BaseModel):
             "Body text of the callout. Supports **bold** and _italic_ markers. "
             "Do not include the callout label (e.g. 'Caution:') — the renderer "
             "adds this automatically."
+        ),
+    )
+    after_step: Optional[int] = Field(
+        default=None,
+        ge=0,
+        description=(
+            "0-based index of the step in section.steps after which this "
+            "callout should render. None (default) places the callout at the "
+            "top of the section, after any preamble but before the first step. "
+            "Used for general section-level warnings. Set to a step index to "
+            "render the callout inline immediately after that step. "
         ),
     )
 
@@ -292,11 +304,28 @@ class ProcedureSection(BaseModel):
     callouts: list[Callout] = Field(
         default_factory=list,
         description=(
-            "Callout boxes associated with this section. Rendered at the top of "
-            "the section, after any preamble but before the first step. Callouts "
-            "appear in the order they are listed here."
+            "Callout boxes associated with this section. Each callout's "
+            "after_step field controls placement: None for top-of-section "
+            "(after any preamble, before the first step), or a 0-based step "
+            "index for inline placement after that step."
         ),
     )
+
+    @model_validator(mode="after")
+    def validate_callout_positions(self) -> "ProcedureSection":
+        """Ensure every callout's after_step is a valid index into self.steps."""
+        n_steps = len(self.steps)
+        for i, callout in enumerate(self.callouts):
+            if callout.after_step is None:
+                continue
+            if callout.after_step >= n_steps:
+                raise ValueError(
+                    f"Callout {i} in section '{self.heading}' has "
+                    f"after_step={callout.after_step}, but section has only "
+                    f"{n_steps} step(s). Valid range: 0 to {n_steps - 1} "
+                    f"inclusive, or None for top-of-section placement."
+                )
+        return self
 
 
 # ---------------------------------------------------------------------------

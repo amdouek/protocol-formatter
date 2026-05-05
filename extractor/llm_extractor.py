@@ -255,13 +255,23 @@ def _post_process_payload(payload: dict) -> dict:
     if not isinstance(payload.get("procedure"), list):
         payload["procedure"] = []
 
-    # Strip callout prefixes recursively through procedure sections
+    # Strip callout prefixes recursively through procedure sections.
+    # Also normalise the after_step field — coerce stringified
+    # integers, treat omission/empty as None.
     for section in payload.get("procedure", []):
         for callout in section.get("callouts", []):
             if "text" in callout:
                 callout["text"] = strip_callout_prefix(
                     normalise_whitespace(callout["text"])
                 )
+            raw_after = callout.get("after_step", None)
+            if raw_after is None or raw_after == "":
+                callout["after_step"] = None
+            else:
+                try:
+                    callout["after_step"] = int(raw_after)
+                except (TypeError, ValueError):
+                    callout["after_step"] = None
 
     # Ensure mix_table rows that start with Total/Incubate have bold=True
     for mt in payload.get("mix_tables", []):

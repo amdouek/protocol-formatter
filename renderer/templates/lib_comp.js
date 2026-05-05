@@ -248,14 +248,38 @@ function renderCompProcedure(procedureSections) {
       );
     }
 
-    // Callouts at top of section
-    for (const callout of section.callouts || []) {
+    // DEVNOTE-040: partition callouts by after_step.
+    // Mirrors lib.js renderProcedure logic; see comments there.
+    const allCallouts = section.callouts || [];
+    const topCallouts = [];
+    const inlineByStep = new Map();
+    for (const c of allCallouts) {
+      if (c.after_step === null || c.after_step === undefined) {
+        topCallouts.push(c);
+      } else {
+        if (!inlineByStep.has(c.after_step)) inlineByStep.set(c.after_step, []);
+        inlineByStep.get(c.after_step).push(c);
+      }
+    }
+
+    // Top-of-section callouts
+    for (const callout of topCallouts) {
       elements.push(calloutBox(callout, COMP_FONT_OPTS));
       elements.push(spacer(60));
     }
 
-    // Steps (rendered with Calibri font override)
-    elements.push(...renderCompSteps(section.steps || [], 0));
+    // Steps with interleaved inline callouts
+    const steps = section.steps || [];
+    steps.forEach((step, i) => {
+      elements.push(...renderCompSteps([step], 0));
+      const stepCallouts = inlineByStep.get(i);
+      if (stepCallouts) {
+        for (const callout of stepCallouts) {
+          elements.push(calloutBox(callout, COMP_FONT_OPTS));
+          elements.push(spacer(60));
+        }
+      }
+    });
     elements.push(spacer(80));
   }
 

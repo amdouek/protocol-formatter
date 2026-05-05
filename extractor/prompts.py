@@ -124,7 +124,9 @@ StoppingPoint = {
 
 Callout = {
   "callout_type": "critical" | "caution" | "tip" | "note",
-  "text": string                      // do NOT include the label (e.g. "Caution:")
+  "text": string,                     // do NOT include the label (e.g. "Caution:")
+  "after_step": number | null         // 0-based index of triggering step,
+                                      // or null for section-top placement
 }
 
 MixTable = {
@@ -173,6 +175,15 @@ Set "code" and "code_language" to null for wet_lab protocols.
   "here") with specific named entities ("the upper aqueous phase", "the RNA \
   pellet", "the TRIzol homogenate"). A reader seeing only the callout box \
   must understand exactly what it refers to.
+- Callout positioning: each callout has an "after_step" field. Set after_step \
+  to the 0-based index of the step that triggers the callout when the warning \
+  applies to a specific action (e.g. a CRITICAL warning about avoiding phase \
+  contamination during a transfer step → after_step is the index of the \
+  transfer step within section.steps). Set after_step to null for general \
+  section-level warnings that apply throughout the section (e.g. "Work in \
+  RNase-free conditions throughout"). When in doubt, prefer inline placement \
+  (specific step index) over null — inline callouts render adjacent to the \
+  triggering action and preserve context.
 - For unknown supplier or catalogue number, use "—".
 """
 
